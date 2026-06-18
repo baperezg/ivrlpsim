@@ -1,0 +1,492 @@
+fileFormatVersion: 2
+guid: 10ab6048128fffb499fc4cd22902b559
+ModelImporter:
+  serializedVersion: 22200
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Amarillo
+    second: {fileID: 2100000, guid: c60e8b202f36c8e459a9813df05eb43d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: AmarilloLetrero
+    second: {fileID: 2100000, guid: 8b52cbf7e73a5b146858ae6c0e785937, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: AzulClaro
+    second: {fileID: 2100000, guid: 8257b7ca12c94b44797a7f2a1fc84220, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: AzulOxigeno
+    second: {fileID: 2100000, guid: 33b209a3772e6b049a128f14e812bea5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MonitorCardiaco
+    second: {fileID: 2100000, guid: 8fb5b5db961c0f14eb017b06246651f2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: avisoUrgencias
+    second: {fileID: 2100000, guid: 855d77a35ede27a44b3dc0919a4c733b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: blanco
+    second: {fileID: 2100000, guid: 093deb6e3d5e3a641a80e5daddef2447, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: cama
+    second: {fileID: 2100000, guid: fa5f307014951754783c0c79e64c7732, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: canaleta
+    second: {fileID: 2100000, guid: 6f0ec7d37d00c9f4aa41471630637a47, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: crema
+    second: {fileID: 2100000, guid: b513aefdd06c1174cac9c7b55a7a419a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: gris
+    second: {fileID: 2100000, guid: 57a4cf75a34f6a448877ff6647ed869a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: grisAzulado
+    second: {fileID: 2100000, guid: f3a0496dee780b942824e150739e7407, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: lambert1
+    second: {fileID: 2100000, guid: cea89e9b3f9f1de42a08e8a52282a9de, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: laptopAbajo
+    second: {fileID: 2100000, guid: 0c9ed784e42287845ac2f9278bf67261, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: laptopAtras
+    second: {fileID: 2100000, guid: 316c13a5abe9bb345adfc49667e1cdaa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: laptopTeclado
+    second: {fileID: 2100000, guid: 826d8b2005484ff4ea98737c1353d134, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: lucesBlinn
+    second: {fileID: 2100000, guid: 997001996ce636947a956b1ba6546ddf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: material
+    second: {fileID: 2100000, guid: 1a7b0bc0d9e62654187c7d979f11c30d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mesa_azul
+    second: {fileID: 2100000, guid: c7cd7a96cd98d7449bc6bc328a4da62d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mesaderecha
+    second: {fileID: 2100000, guid: 8409f978102b26744b42e8a2534c9f0b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mesaizq
+    second: {fileID: 2100000, guid: b193f3068c4183444ab8e494f9f9696a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: monitorSignos
+    second: {fileID: 2100000, guid: eaec6aaaacfe70544b19694a76137ef7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: naranja
+    second: {fileID: 2100000, guid: 5c2831f62555d9844a2ec5e458039c91, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: negroplastico
+    second: {fileID: 2100000, guid: 200e4a0cce5aff14c9fec301e9e96bda, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredBlanca
+    second: {fileID: 2100000, guid: c3d634f646552e64ba3d1349d20aa8cd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredEste
+    second: {fileID: 2100000, guid: b455a6bc48f516e43ac50268cc6a89f9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredMuelaGrande1
+    second: {fileID: 2100000, guid: 2a2f92fce3ba8e541b7b0ae065035fa7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredMuelaPequena
+    second: {fileID: 2100000, guid: f18862c54c7bf2b449f19142b90d787a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredNorteAbajo
+    second: {fileID: 2100000, guid: 52c42d0820b59f44cb85eca9413c9922, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredNorteArriba
+    second: {fileID: 2100000, guid: bb1cfe1311cc4cd4cb4d04daae4b9480, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredNorteLado
+    second: {fileID: 2100000, guid: 0708e006af9eb154a9e2649119c38540, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredOeste
+    second: {fileID: 2100000, guid: 622cad1a526c1fa45b7665a9df4ac793, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredOestePeq
+    second: {fileID: 2100000, guid: 8043e9b208f0e7b4f8121758eb785411, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: paredSur
+    second: {fileID: 2100000, guid: c66e9a432e64daf40b3b2c74e6a5e3c0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: pasillo
+    second: {fileID: 2100000, guid: fa6433cd8f0bb2a41a9b46a6a069378b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: persiana
+    second: {fileID: 2100000, guid: 5f125e7b065c53d4e992d56d980a0f0e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: pisoPlane
+    second: {fileID: 2100000, guid: 9e7208bf309ec534fbed3379409b64e3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: pisolab
+    second: {fileID: 2100000, guid: 56a55466f22507a41b2f032fa3a05052, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: puerta
+    second: {fileID: 2100000, guid: 8a52ab95fb196f14da7c6d8bf75df538, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: radiografia
+    second: {fileID: 2100000, guid: 9868975b4ecc71749bbb78172beb1bea, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: simMan
+    second: {fileID: 2100000, guid: c11ef400534483942a84082e38f631de, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: suero_Archmodels70_022_06Mat
+    second: {fileID: 2100000, guid: 96dfb1d1e1cfc4749989a2dcd914f2c1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: suero_Control_Suero
+    second: {fileID: 2100000, guid: 109a1ebf025eddf4db3c9caa2b6fe0d0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: suero_MetalChrome
+    second: {fileID: 2100000, guid: dbd9adfb08af1524fbf4760d24b9ae9f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: suero_Plastico_Azul
+    second: {fileID: 2100000, guid: a5bfdccff74bdb441a380c0f7703bc41, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: suero_Suero_1_1
+    second: {fileID: 2100000, guid: 585db9e14fabe7b45a28ffb3ec3ebc7d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: suero_Suero_2
+    second: {fileID: 2100000, guid: c27da5decd2968a4392d241075b5ba08, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: suero_Vidrio
+    second: {fileID: 2100000, guid: 39057edb1701e47499da979f0e34a52d, type: 2}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Archmodels70_022_dif
+    second: {fileID: 2800000, guid: 040fb47a98090dc4499fe288b0a0fa65, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Archmodels70_022_drip01_mask
+    second: {fileID: 2800000, guid: 4b482600283ed3448b16f694b2e82088, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Archmodels70_022_info
+    second: {fileID: 2800000, guid: 8520f07706d2a0d4d8c8dc8585e0cac5, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: cama
+    second: {fileID: 2800000, guid: 89c15c865a4015143aa0911b058a4dcc, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: laptopAbajo
+    second: {fileID: 2800000, guid: b04ba128fa88f1b4494ee1e465325ea5, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: laptopAtras
+    second: {fileID: 2800000, guid: bd81fc81e34632646aa2aa6083ec8eb8, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: laptopTeclado
+    second: {fileID: 2800000, guid: c6e2ed6da1fd7914787c8f53f4df13f5, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: mesaazul
+    second: {fileID: 2800000, guid: 9c89647139f25914898db1a8581878b3, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: mesaderecha
+    second: {fileID: 2800000, guid: 38a198077d54da14091de30336e37b54, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: mesaizquierda
+    second: {fileID: 2800000, guid: a82f8485dead7c74d83a1c8c0615f9d5, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metalcromo
+    second: {fileID: 2800000, guid: 62342ed5a8d02094493819ca0d533761, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: monitorcardiaco
+    second: {fileID: 2800000, guid: 31d1942cc017b3043a525a906f09e2f0, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: monitorsignos
+    second: {fileID: 2800000, guid: 9f9c8161179bb994f8f5ddf368c53431, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: paredEstePlanoShape
+    second: {fileID: 2800000, guid: 8521664ca4bc58d4abdff66385beaf66, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: paredMuelaGrandeShape
+    second: {fileID: 2800000, guid: f142bbcd79b2e1e48b9781616a892c3f, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: paredMuelaPeqShape
+    second: {fileID: 2800000, guid: 82f081d14155de146a9413fef40597d5, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: paredNorteAbajoPlanoShape
+    second: {fileID: 2800000, guid: f9af0db9b2980d04f9e50ea1ba187ffb, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: paredNorteArribaPlanoShape
+    second: {fileID: 2800000, guid: c07fa02ba13f79b4d833bd4aae7c7c86, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: paredNorteLadoPlanoShape
+    second: {fileID: 2800000, guid: b3cb1ab8738219e40a92921f01b28174, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: paredOestePlanoPeqShape
+    second: {fileID: 2800000, guid: 0917f06a1de34d145b20bb2a0806c6ad, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: paredOestePlanoShape
+    second: {fileID: 2800000, guid: f406a5bdf7c504646aab1eaa48bed4a8, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: paredSurPlanoShape
+    second: {fileID: 2800000, guid: 341d6a6ef8db4f14cb833362e75ba73b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: pasillo
+    second: {fileID: 2800000, guid: 7fc6c6e9bf3227e4096073d3d5725077, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: persiana
+    second: {fileID: 2800000, guid: ec6337b0ba0a0ae4aa584d9646def308, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: piso
+    second: {fileID: 2800000, guid: 3f64ff27026e8a045b27274cc7d1007e, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: pisoPlanoShape
+    second: {fileID: 2800000, guid: 45d56a4299edc834a8cee8118087e7f9, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: rxheart
+    second: {fileID: 2800000, guid: 0d6f8a89f082b5647be05b081ad13005, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: simman
+    second: {fileID: 2800000, guid: 4eacc18e4fa76fa4189c4fe7d182a8e2, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: urgencias
+    second: {fileID: 2800000, guid: 8879d71910a206040b381d199043ce82, type: 3}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 0
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
