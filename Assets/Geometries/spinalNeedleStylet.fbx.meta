@@ -1,9 +1,34 @@
 fileFormatVersion: 2
-guid: d3690bf08c869564e8d99c1d82aed712
+guid: 642bcad7849aedd4eae7fb8279c2fe3d
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: BezelMat
+    second: {fileID: 2100000, guid: c2b5d02a0ac670b4e934bdbc355b7c3f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: BladeMat
+    second: {fileID: 2100000, guid: 425880dd24cba3c4ab5b76070feeabd5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HeadMat
+    second: {fileID: 2100000, guid: c2ab600cfd5ae78468b51d68f556c2a1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: NeedleMat
+    second: {fileID: 2100000, guid: f81fc5717b56884468d3ad76cfa7fc8c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: StyletMat
+    second: {fileID: 2100000, guid: 2b08f19949712294da9ca04092f6c814, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

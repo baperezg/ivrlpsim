@@ -5,11 +5,18 @@ TagManager:
   serializedVersion: 3
   tags:
   - Anchor
+  - SubLoop
+  - DuraPeak
+  - FlavumLoop
+  - EpiduralLoop
+  - LigamentsPeek
+  - LigamentsLoop
+  - SkinPeak
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Overlay UI
   - Water
   - UI
   - 
