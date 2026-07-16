@@ -15,9 +15,9 @@ public class InputTest : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        float value = testActionValue.action.ReadValue<float>();
-        Debug.Log("VALUE: "+ value);
-        bool button = testActionButton.action.IsPressed();
-        Debug.Log("BUTTON: " + button);
+        //float value = testActionValue.action.ReadValue<float>();
+        //Debug.Log("VALUE: "+ value);
+        //bool button = testActionButton.action.IsPressed();
+        //Debug.Log("BUTTON: " + button);
     }
 }

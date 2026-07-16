@@ -48,9 +48,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -6191132183674620565, guid: 77d2885c1811bfc4eb0fb17e0e590e1b, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 77d2885c1811bfc4eb0fb17e0e590e1b, type: 3}
       propertyPath: m_Name
       value: Manometer
+      objectReference: {fileID: 0}
+    - target: {fileID: 6944827460796940047, guid: 77d2885c1811bfc4eb0fb17e0e590e1b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

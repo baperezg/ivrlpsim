@@ -12,6 +12,7 @@ TagManager:
   - LigamentsPeek
   - LigamentsLoop
   - SkinPeak
+  - Needle
   layers:
   - Default
   - TransparentFX

@@ -1,24 +1,52 @@
 using UnityEngine;
-using UnityEngine.XR.OpenXR.Features.Interactions;
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 public class NeedleMovement : MonoBehaviour
 {
-    [SerializeField] private Transform questControllerTransform;
+    [SerializeField] private Transform leftControllerTransform;
+    [SerializeField] private Transform rightControllerTransform;
+    [SerializeField] private XRGrabInteractable grabInteractable;
 
-    
+    private Transform activeControllerTransform;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    void Awake()
     {
-        
+        // Subscribe to grab/release events
+        grabInteractable.selectEntered.AddListener(OnGrab);
+        grabInteractable.selectExited.AddListener(OnRelease);
+    }
+    private void OnGrab(SelectEnterEventArgs args)
+    {
+        if (args.interactorObject is XRBaseInputInteractor inputInteractor)
+        {
+            if (inputInteractor.handedness == InteractorHandedness.Left)
+            {
+                Debug.Log("Grabbed with LEFT hand");
+                activeControllerTransform = leftControllerTransform;
+            }
+            else if (inputInteractor.handedness == InteractorHandedness.Right)
+            {
+                Debug.Log("Grabbed with RIGHT hand");
+                activeControllerTransform = rightControllerTransform;
+            }
+        }
     }
 
-    // Update is called once per frame
+
+    private void OnRelease(SelectExitEventArgs args)
+    {
+        activeControllerTransform = null;
+    }
+
     void Update()
     {
-        // The needle moves and rotates as the quest controller does
-        this.transform.position = questControllerTransform.transform.position;
-        this.transform.rotation = questControllerTransform.transform.rotation;
+        if (activeControllerTransform != null)
+        {
+            transform.position = activeControllerTransform.position;
+            transform.rotation = activeControllerTransform.rotation;
+        }
     }
 
 }
