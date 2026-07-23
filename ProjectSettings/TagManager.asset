@@ -13,6 +13,9 @@ TagManager:
   - LigamentsLoop
   - SkinPeak
   - Needle
+  - Tissue
+  - DuraLoop
+  - SkinLoop
   layers:
   - Default
   - TransparentFX

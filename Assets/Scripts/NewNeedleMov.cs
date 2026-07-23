@@ -3,19 +3,20 @@ using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
-public class NeedleMovement : MonoBehaviour
+public class NewNeedleMov : MonoBehaviour
 {
     [SerializeField] private Transform leftControllerTransform;
     [SerializeField] private Transform rightControllerTransform;
     [SerializeField] private XRGrabInteractable grabInteractable;
 
+    public Transform ActiveControllerTransform { get; private set; }
+    public bool IsGrabbed => ActiveControllerTransform != null;
 
-    private Transform activeControllerTransform;
-
-
-    void Awake()
+    private void Awake()
     {
-        // Subscribe to grab/release events
+        if (grabInteractable == null)
+            grabInteractable = GetComponent<XRGrabInteractable>();
+
         grabInteractable.selectEntered.AddListener(OnGrab);
         grabInteractable.selectExited.AddListener(OnRelease);
     }
@@ -24,36 +25,25 @@ public class NeedleMovement : MonoBehaviour
     {
         if (args.interactorObject is XRBaseInputInteractor inputInteractor)
         {
-
             if (inputInteractor.handedness == InteractorHandedness.Left)
             {
-                Debug.Log("Grabbed with LEFT hand");
-                activeControllerTransform = leftControllerTransform;
+                ActiveControllerTransform = leftControllerTransform;
             }
-
             else if (inputInteractor.handedness == InteractorHandedness.Right)
             {
-                Debug.Log("Grabbed with RIGHT hand");
-                activeControllerTransform = rightControllerTransform;
+                ActiveControllerTransform = rightControllerTransform;
             }
         }
     }
-
 
     private void OnRelease(SelectExitEventArgs args)
     {
-        activeControllerTransform = null;
+        ActiveControllerTransform = null;
     }
 
-
-
-    void Update()
+    private void OnDestroy()
     {
-
-        if (activeControllerTransform != null)
-        {
-            transform.position = activeControllerTransform.position;
-            transform.rotation = activeControllerTransform.rotation;
-        }
+        grabInteractable.selectEntered.RemoveListener(OnGrab);
+        grabInteractable.selectExited.RemoveListener(OnRelease);
     }
 }
