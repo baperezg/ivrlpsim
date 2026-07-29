@@ -17,6 +17,7 @@ public class NewNeedleModel : MonoBehaviour
     [SerializeField] private Vector3 insertionDirectionWorld;
     [SerializeField] private Quaternion entryRotation;
 
+
     private void Awake()
     {
         if (needleMovement == null)
@@ -38,11 +39,12 @@ public class NewNeedleModel : MonoBehaviour
             float distanceAlongAxis = Vector3.Dot(targetOffset, insertionDirectionWorld);
 
             // Restrict movement strictly along insertion axis line
-            transform.position = entryPoint + (insertionDirectionWorld * distanceAlongAxis);
+            transform.position = entryPoint + (insertionDirectionWorld * (distanceAlongAxis));
             transform.rotation = entryRotation;
 
             // Lock rotation to initial entry direction to avoid bending inside tissue
             // (Remove or adjust if rotational twist around axis is allowed)
+            
         }
         else
         {
@@ -89,4 +91,5 @@ public class NewNeedleModel : MonoBehaviour
             Debug.Log("<b>[Puncture Exited]</b> Needle withdrawn.");
         }
     }
+
 }
