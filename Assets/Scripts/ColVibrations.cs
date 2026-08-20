@@ -1,10 +1,19 @@
-using UnityEngine;
 using Oculus.Haptics;
 using System;
+using TMPro;
+using UnityEngine;
 
 public class ColVibrations : MonoBehaviour
 {
+    [Header("Haptics & Simulation References")]
     [SerializeField] private TriggerHapticOnGrab triggerHapticOnGrab;
+    [SerializeField] private CSFDropletEmitter dropletEmitter;
+    [SerializeField] private PrimaryButAction primaryButAction;
+
+    [Header("UI Feedback")]
+    [Tooltip("Assign the TextMeshPro-Text component from your Canvas / UI.")]
+    [SerializeField] private TextMeshProUGUI tissueStatusText;
+
     //private OVRInput.Controller controller;
     private Controller hand;
 
@@ -12,6 +21,7 @@ public class ColVibrations : MonoBehaviour
     {
         //controller = OVRInput.Controller.RTouch;
         hand = Controller.Right;
+        UpdateTissueText("External / Air");
     }
     void Update()
     {
@@ -22,43 +32,58 @@ public class ColVibrations : MonoBehaviour
 
     public void OnTriggerEnter(Collider other)
     {
-        
+        string tag = other.gameObject.tag;
+
         if (other.gameObject.CompareTag("SkinLoop"))
         {
             triggerHapticOnGrab.PlayClipSkinLoop(hand);
+            UpdateTissueText("Skin");
         }
         if (other.gameObject.CompareTag("SkinPeak"))
         {
             triggerHapticOnGrab.PlayClipSkinPeak(hand);
+            UpdateTissueText("Skin");
         }
         if (other.gameObject.CompareTag("SubLoop"))
         {
             triggerHapticOnGrab.PlayClipSubcutLoop(hand);
+            UpdateTissueText("Subcutaneous tissue");
         }
         if (other.gameObject.CompareTag("LigamentsLoop"))
         {
             triggerHapticOnGrab.PlayClipLigamentsLoop(hand);
+            UpdateTissueText("Supraspinous / Interspinous Ligament");
         }
         if (other.gameObject.CompareTag("LigamentsPeek"))
         {
             triggerHapticOnGrab.PlayClipLigamentsPeak(hand);
+            UpdateTissueText("Supraspinous / Interspinous Ligament");
         }
         if (other.gameObject.CompareTag("FlavumLoop"))
         {
             triggerHapticOnGrab.PlayClipFlavumLoop(hand);
+            UpdateTissueText("Ligamentum Flavum");
         }
         if (other.gameObject.CompareTag("EpiduralLoop"))
         {
             triggerHapticOnGrab.PlayClipEpiduralLoop(hand);
+            UpdateTissueText("Epidural Space");
         }
         if (other.gameObject.CompareTag("DuraLoop"))
         {
             triggerHapticOnGrab.PlayClipDuraLoop(hand);
+            UpdateTissueText("Subarachnoid Space (Dura Mater)");
         }
         if (other.gameObject.CompareTag("DuraPeak"))
         {
             triggerHapticOnGrab.PlayClipDuraPeak(hand);
+            UpdateTissueText("Subarachnoid Space (Dura Mater)");
         }
+        if (other.gameObject.CompareTag("Bone"))
+        {            
+            UpdateTissueText("Bone");
+        }
+
 
     }
 
@@ -87,8 +112,14 @@ public class ColVibrations : MonoBehaviour
         if (other.gameObject.CompareTag("DuraLoop"))
         {
             triggerHapticOnGrab.PlayClipDuraLoop(hand);
+            if(primaryButAction.checkCSF.checking)                        
+                dropletEmitter.IsDripping = true;                
         }
-        
+        if (other.gameObject.CompareTag("Bone"))
+        {
+            UpdateTissueText("Bone");
+        }
+
     }
 
     public void OnTriggerExit(Collider other)
@@ -124,10 +155,30 @@ public class ColVibrations : MonoBehaviour
         if (other.gameObject.CompareTag("DuraLoop"))
         {
             triggerHapticOnGrab.StopClipDuraLoop(hand);
+            dropletEmitter.SetDripping(true);
+            
         }
         if (other.gameObject.CompareTag("DuraPeak"))
         {
             triggerHapticOnGrab.StopClipDuraPeak(hand);
+            dropletEmitter.SetDripping(false);
+        }
+
+        // Reset text when pulling needle out to exterior
+        if (other.gameObject.CompareTag("SkinLoop") || other.gameObject.CompareTag("SkinPeak"))
+        {
+            UpdateTissueText("External / Air");
+        }
+    }
+
+    /// <summary>
+    /// Updates the TextMeshPro UI text component safely.
+    /// </summary>
+    private void UpdateTissueText(string text)
+    {
+        if (tissueStatusText != null)
+        {
+            tissueStatusText.text = text;
         }
     }
 

@@ -1,5 +1,64 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.XR.Interaction.Toolkit.Interactables; // XRI 3
+
+[RequireComponent(typeof(XRGrabInteractable))]
+public class PrimaryButAction : MonoBehaviour
+{
+    [Tooltip("Assign the Input Action for the Primary Button (e.g., XRI LeftHand/Primary Button or RightHand/Primary Button)")]
+    [SerializeField] private InputActionReference primaryButtonAction;
+
+    [Header("Target Script")]
+    public CheckCSF checkCSF;
+
+    private XRGrabInteractable grabInteractable;
+    private bool isStyletOut = false;
+
+    private void Awake()
+    {
+        grabInteractable = GetComponent<XRGrabInteractable>();
+    }
+
+    private void OnEnable()
+    {
+        if (primaryButtonAction != null && primaryButtonAction.action != null)
+        {
+            primaryButtonAction.action.Enable();
+            primaryButtonAction.action.performed += OnButtonPressed;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (primaryButtonAction != null && primaryButtonAction.action != null)
+        {
+            primaryButtonAction.action.performed -= OnButtonPressed;
+        }
+    }
+
+    private void OnButtonPressed(InputAction.CallbackContext context)
+    {
+        // Only allow toggling if the user is currently holding the needle
+        if (!grabInteractable.isSelected || checkCSF == null) return;
+
+        if (!isStyletOut)
+        {
+            // First Press: Withdraw/advance stylet and check for CSF flow
+            checkCSF.moveForward();
+            checkCSF.checkCSF();
+            isStyletOut = true;
+        }
+        else
+        {
+            // Second Press: Return stylet back to original position
+            checkCSF.moveBackward();
+            isStyletOut = false;
+        }
+    }
+}
+/*
+using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.XR.Interaction.Toolkit.Interactables; // XRI 3 namespace for interactables
 
 [RequireComponent(typeof(XRGrabInteractable))]
@@ -15,7 +74,7 @@ public class PrimaryButAction : MonoBehaviour
     private XRGrabInteractable grabInteractable;
     private bool isButtonDown = false;
     private float buttonPressedTime = 0f;
-    private bool holdTriggered = false;
+    public bool holdTriggered = false;
 
     public CheckCSF checkCSF;
 
@@ -100,3 +159,4 @@ public class PrimaryButAction : MonoBehaviour
         checkCSF.checkCSF();
     }
 }
+*/

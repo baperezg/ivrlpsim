@@ -16,6 +16,7 @@ TagManager:
   - Tissue
   - DuraLoop
   - SkinLoop
+  - Bone
   layers:
   - Default
   - TransparentFX

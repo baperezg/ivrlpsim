@@ -21,6 +21,9 @@ public class URPAlphaChanger : MonoBehaviour
     [Tooltip("The target alpha value applied when transparent.")]
     [SerializeField] private float transparentAlpha = 0.5f;
 
+    [Header("Slider toggle")]
+    [SerializeField] private GameObject internalAnatomySlider;
+
     private Renderer targetRenderer;
     private Material runtimeTransparentMaterialInstance;
     private bool isTransparent = false;
@@ -132,5 +135,13 @@ public class URPAlphaChanger : MonoBehaviour
         {
             Destroy(runtimeTransparentMaterialInstance);
         }
+    }
+
+    public void ToggleSlider()
+    {
+        if (internalAnatomySlider.activeSelf)
+            internalAnatomySlider.SetActive(false);
+        else
+            internalAnatomySlider.SetActive(true);
     }
 }
