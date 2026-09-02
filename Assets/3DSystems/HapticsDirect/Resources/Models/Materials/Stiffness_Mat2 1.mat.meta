@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: af079c1af2ac0194fba4f272db666f48
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Materials/Stiffness_Mat2
+    1.mat
+  uploadId: 487604

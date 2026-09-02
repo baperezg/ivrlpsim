@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1ee86bbd68ea3414dabb65f93af8d4c9
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Materials/Light.mat
+  uploadId: 487604

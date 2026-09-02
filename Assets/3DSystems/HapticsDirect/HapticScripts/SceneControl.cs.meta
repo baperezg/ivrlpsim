@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 2959e9c887b69484398692dbfe56bae0
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/HapticScripts/SceneControl.cs
+  uploadId: 487604

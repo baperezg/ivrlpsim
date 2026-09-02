@@ -7,6 +7,7 @@ public class NewNeedleModel : MonoBehaviour
     public GameObject scp;
 
     [SerializeField] private NewNeedleMov needleMovement;
+    [SerializeField] private LumbarPunctureMonteCarlo monteCarloSim;
 
     [Header("Settings")]
     [Tooltip("Direction vector along the length of the needle (usually Vector3.forward or Vector3.up)")]
@@ -22,6 +23,9 @@ public class NewNeedleModel : MonoBehaviour
     {
         if (needleMovement == null)
             needleMovement = GetComponent<NewNeedleMov>();
+
+        if (monteCarloSim == null)
+            monteCarloSim = FindFirstObjectByType<LumbarPunctureMonteCarlo>();
     }
 
     private void Update()
@@ -70,10 +74,29 @@ public class NewNeedleModel : MonoBehaviour
             if (scp != null)
             {
                 scp.transform.position = entryPoint;
-                scp.SetActive(true);
+                //scp.SetActive(true);
             }
 
             Debug.Log($"<b>[Puncture Initiated]</b> Entry Point: {entryPoint}");
+
+            // --- Compare trajectory with Monte Carlo model ---
+            if (monteCarloSim != null)
+            {
+                var result = monteCarloSim.CompareWithMonteCarlo(entryPoint, insertionDirectionWorld);
+
+                if (result.hasValidMatch)
+                {
+                    Debug.Log($"<b>[Trajectory Metric]</b> " +
+                              $"Score: {result.combinedSimilarityScore:F1}% | " +
+                              $"Angle Error: {result.angularErrorDeg:F1}° | " +
+                              $"Entry Offset: {(result.entryDistanceError * 1000f):F1} mm | " +
+                              $"Target Miss: {(result.targetMissDistance * 1000f):F1} mm");
+                }
+                else
+                {
+                    Debug.LogWarning("[Trajectory Metric] No valid Monte Carlo trajectory found.");
+                }
+            }
         }
     }
 

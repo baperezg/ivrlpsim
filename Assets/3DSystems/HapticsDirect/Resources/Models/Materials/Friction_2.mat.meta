@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b15d77fb3d8afd24c892c5169573aabe
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Materials/Friction_2.mat
+  uploadId: 487604

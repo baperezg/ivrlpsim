@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 403d8bf7092082640b72b7bbad93a3b5
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/FeaturesScenes/HapticPainting.unity
+  uploadId: 487604

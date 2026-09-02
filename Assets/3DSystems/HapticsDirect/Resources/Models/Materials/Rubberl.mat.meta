@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4ae115f8dbdce5847b8be1b136cd3bce
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Materials/Rubberl.mat
+  uploadId: 487604

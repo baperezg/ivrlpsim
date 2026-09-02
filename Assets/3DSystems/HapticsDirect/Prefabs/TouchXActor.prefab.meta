@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7e9b8dbdffed4b040b2329a6b2f24748
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Prefabs/TouchXActor.prefab
+  uploadId: 487604

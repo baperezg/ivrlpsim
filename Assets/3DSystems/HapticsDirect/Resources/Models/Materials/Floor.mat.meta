@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d558d7bd9aa719446b8c43a6fb6d3470
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Materials/Floor.mat
+  uploadId: 487604

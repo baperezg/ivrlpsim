@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b9f85758b1afc824f8623a7dd85e16c9
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Materials/Mass_1.mat
+  uploadId: 487604

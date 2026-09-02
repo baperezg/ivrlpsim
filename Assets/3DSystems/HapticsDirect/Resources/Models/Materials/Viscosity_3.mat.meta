@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c8a6a469aeafb0048a65b79711810eed
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Materials/Viscosity_3.mat
+  uploadId: 487604

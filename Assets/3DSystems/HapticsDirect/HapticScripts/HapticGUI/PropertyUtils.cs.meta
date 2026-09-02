@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 735be58ec4dc9884b92cc1a773452d18
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/HapticScripts/HapticGUI/PropertyUtils.cs
+  uploadId: 487604

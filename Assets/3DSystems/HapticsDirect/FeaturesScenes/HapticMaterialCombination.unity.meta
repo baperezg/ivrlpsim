@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: dbebf53bec1318445af25d8c6e419b43
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/FeaturesScenes/HapticMaterialCombination.unity
+  uploadId: 487604

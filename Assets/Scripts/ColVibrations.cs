@@ -92,28 +92,36 @@ public class ColVibrations : MonoBehaviour
         if (other.gameObject.CompareTag("SkinLoop"))
         {
             triggerHapticOnGrab.PlayClipSkinLoop(hand);
+            UpdateTissueText("Skin");
         }
         if(other.gameObject.CompareTag("SubLoop"))
         {
             triggerHapticOnGrab.PlayClipSubcutLoop(hand);
+            UpdateTissueText("Subcutaneous tissue");
         }
         if (other.gameObject.CompareTag("LigamentsLoop"))
         {
             triggerHapticOnGrab.PlayClipLigamentsLoop(hand);
+            UpdateTissueText("Supraspinous / Interspinous Ligament");
         }
         if (other.gameObject.CompareTag("FlavumLoop"))
         {
             triggerHapticOnGrab.PlayClipFlavumLoop(hand);
+            UpdateTissueText("Ligamentum Flavum");
         }
         if (other.gameObject.CompareTag("EpiduralLoop"))
         {
             triggerHapticOnGrab.PlayClipEpiduralLoop(hand);
+            UpdateTissueText("Epidural Space");
         }
         if (other.gameObject.CompareTag("DuraLoop"))
         {
             triggerHapticOnGrab.PlayClipDuraLoop(hand);
-            if(primaryButAction.checkCSF.checking)                        
-                dropletEmitter.IsDripping = true;                
+            UpdateTissueText("Subarachnoid Space (Dura Mater)");
+            if (primaryButAction.checkCSF.checking)                        
+                dropletEmitter.IsDripping = true;
+            else
+                dropletEmitter.IsDripping = false;
         }
         if (other.gameObject.CompareTag("Bone"))
         {

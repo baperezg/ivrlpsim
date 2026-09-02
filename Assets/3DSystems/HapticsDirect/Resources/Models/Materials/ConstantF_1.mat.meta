@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3348ccc9dce41c946b3006c5a13c88f7
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Materials/ConstantF_1.mat
+  uploadId: 487604

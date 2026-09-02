@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 4766d398c6d428248a9a3ffa2df9d7b4
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Prefabs/Box_1 Variant.prefab
+  uploadId: 487604

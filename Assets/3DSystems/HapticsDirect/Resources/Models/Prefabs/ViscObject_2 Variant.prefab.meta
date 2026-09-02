@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: deba76614087d5a498f0f17645b4b795
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/Resources/Models/Prefabs/ViscObject_2
+    Variant.prefab
+  uploadId: 487604

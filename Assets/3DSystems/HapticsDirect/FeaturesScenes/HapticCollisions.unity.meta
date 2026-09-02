@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: ee5e741ea71290641827574779d677f8
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 197034
+  packageName: Haptics Direct for Unity V1
+  packageVersion: 1.1
+  assetPath: Assets/3DSystems/HapticsDirect/FeaturesScenes/HapticCollisions.unity
+  uploadId: 487604

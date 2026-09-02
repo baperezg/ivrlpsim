@@ -386,4 +386,78 @@ public class LumbarPunctureMonteCarlo : MonoBehaviour
             }
         }
     }
+
+    public struct TrajectoryComparison
+    {
+        public bool hasValidMatch;
+        public TrajectoryResult bestTrajectory;
+        public float angularErrorDeg;
+        public float entryDistanceError;
+        public float targetMissDistance;
+        public float matchedTrajectoryScore;
+        public float combinedSimilarityScore; // 0 to 100%
+    }
+
+    /// <summary>
+    /// Compares a needle insertion ray against all precalculated valid trajectories.
+    /// </summary>
+    public TrajectoryComparison CompareWithMonteCarlo(Vector3 needleEntryPoint, Vector3 needleDirection)
+    {
+        TrajectoryComparison comparison = new TrajectoryComparison();
+        float bestMetric = float.MaxValue;
+        bool foundValid = false;
+
+        // 1. Calculate target intersection (plane intersection with duraCircle)
+        Plane duraPlane = new Plane(duraCircle.forward, duraCircle.position);
+        Ray needleRay = new Ray(needleEntryPoint, needleDirection);
+
+        if (duraPlane.Raycast(needleRay, out float enterDist))
+        {
+            Vector3 targetHitPoint = needleRay.GetPoint(enterDist);
+            comparison.targetMissDistance = Vector3.Distance(targetHitPoint, duraCircle.position);
+        }
+        else
+        {
+            comparison.targetMissDistance = float.MaxValue;
+        }
+
+        // 2. Search through generated trajectories
+        for (int i = 0; i < trajectories.Count; i++)
+        {
+            var traj = trajectories[i];
+            if (!traj.isValid) continue; // Only compare against valid paths
+
+            Vector3 trajDir = (traj.end - traj.start).normalized;
+            float angle = Vector3.Angle(needleDirection, trajDir);
+            float entryDist = Vector3.Distance(needleEntryPoint, traj.start);
+
+            // Combined cost metric (balancing angle in degrees and distance in meters)
+            float cost = angle + (entryDist * 100f);
+
+            if (cost < bestMetric)
+            {
+                bestMetric = cost;
+                comparison.bestTrajectory = traj;
+                comparison.angularErrorDeg = angle;
+                comparison.entryDistanceError = entryDist;
+                comparison.matchedTrajectoryScore = traj.score;
+                foundValid = true;
+            }
+        }
+
+        comparison.hasValidMatch = foundValid;
+
+        if (foundValid)
+        {
+            // Compute 0-100% similarity score
+            float angleScore = Mathf.Clamp01(1f - (comparison.angularErrorDeg / 15f)) * 40f;   // 15 deg max
+            float entryScore = Mathf.Clamp01(1f - (comparison.entryDistanceError / skinRadius)) * 30f;
+            float targetScore = Mathf.Clamp01(1f - (comparison.targetMissDistance / duraRadius)) * 30f;
+
+            comparison.combinedSimilarityScore = Mathf.Clamp(angleScore + entryScore + targetScore, 0f, 100f);
+        }
+
+        return comparison;
+    }
+
 }
