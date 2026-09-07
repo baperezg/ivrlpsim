@@ -10,11 +10,22 @@ public enum LumbarLayer
     LigamentumFlavumLF = 5,
     EpiduralSpaceES = 6,
     DuraMater = 7,
-    BoneStrike = 8
+    SubarachnoidSpace = 8,
+    BoneStrike = 9
 }
 
 public class LumbarPunctureDirectPluginForce : MonoBehaviour
 {
+    [Header("Bounding Volume (Activation Box)")]
+    [Tooltip("BoxCollider defining the active physical volume for the tissue. MeshRenderer can be disabled.")]
+    public BoxCollider targetBoundingBox;
+
+    [Tooltip("Maximum entry approach distance from the surface aperture to initiate puncture (in mm).")]
+    public float surfaceEntryProximityMm = 5.0f;
+
+    [Tooltip("Maximum allowable entry aperture radius in mm from the circle center to allow puncture initiation.")]
+    public float maxEntryApertureRadiusMm = 15.0f;
+
     [Header("Tracking Transforms")]
     [Tooltip("The 2D circle / entry aperture transform (its forward vector defines penetration direction).")]
     public Transform entryCircleTransform;
@@ -22,12 +33,24 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
     [Tooltip("The needle tip / stylus proxy tracked by the haptic device.")]
     public Transform needleTip;
 
+    [Tooltip("Visual representation of the needle mesh.")]
+    public Transform needleMesh;
+
     [Header("Device Hardware Limit")]
     [Tooltip("Maximum continuous force output for 3D Systems Touch/Omni (3.3 N).")]
     public float maxDeviceForceN = 3.3f;
 
-    [Header("Stabilization & Damping")]
-    [Tooltip("Viscous damping factor (N·s/m) along puncture axis to cancel flutter/buzzing.")]
+    [Header("1D Constraint Virtual Fixture (Channel)")]
+    [Tooltip("Stiffness of the virtual channel in N/m opposing lateral deviation.")]
+    [Range(50f, 600f)]
+    public float channelStiffnessK = 50.0f;
+
+    [Tooltip("Damping factor in N·s/m opposing lateral drift.")]
+    [Range(0f, 15f)]
+    public float channelDampingB = 4.0f;
+
+    [Header("Stabilization & Inward Damping")]
+    [Tooltip("Viscous damping factor (N·s/m) along puncture axis to cancel boundary flutter.")]
     [Range(0.0f, 25.0f)]
     public float insertionDamping = 4.0f;
 
@@ -43,15 +66,21 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
     public float scalingCO = 1.0f;
 
     [Header("Cumulative Layer Depths (mm)")]
-    public float thickSkin = 5.0f;
-    public float thickFat = 15.0f;
-    public float thickMS_Before = 20.0f;
-    public float thickMS_After = 25.0f;
-    public float thickIL_Before = 30.0f;
-    public float thickIL_After = 35.0f;
-    public float thickLF_Before = 40.0f;
-    public float thickLF_After = 44.0f;
-    public float thickES = 50.0f; // Beyond LF_After up to Dura
+    public float thickSkin = 13.92f;
+    public float thickFat = 17.15f;
+    public float thickMS_Before = 19.37f;
+    public float thickMS_After = 20.0f;
+    public float thickIL_Before = 23.18f;
+    public float thickIL_After = 41.18f;
+    public float thickLF_Before = 44.79f;
+    public float thickLF_After = 48.38f;
+    public float thickES = 56.98f; // Epidural space end (Dura boundary start)
+    [Tooltip("Thickness of the Dura Mater before yielding into the subarachnoid space (in mm).")]
+    public float thickDura = 60.0f;
+
+    [Header("Dura & Bone Force Settings")]
+    [Tooltip("Peak puncture resistance force of the dura mater.")]
+    public float duraPunctureForceN = 3.0f;
 
     [Header("Bone Collision Constraints")]
     [Tooltip("Radial deviation threshold in mm from center to trigger bone contact.")]
@@ -63,16 +92,17 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
     [SerializeField] private LumbarLayer currentLayer = LumbarLayer.Outside;
     [SerializeField] private float depthMillimeters = 0.0f;
     [SerializeField] private float lateralOffsetMm = 0.0f;
-    [SerializeField] private float appliedForceN = 0.0f;
-    [SerializeField] private bool isPenetrating = false;
-    [SerializeField] private bool duralPunctureOccurred = false;
+    [SerializeField] public float appliedForceN = 0.0f;
+    [SerializeField] public bool isPenetrating = false;
+    [SerializeField] public bool isInsideBoundingBox = false;
+    [SerializeField] public bool duralPunctureOccurred = false;
 
     private HapticPlugin hapticPlugin;
     private bool forceActive = false;
+    private Quaternion entryOrientation;
 
     private void Start()
     {
-        // Automatically locate the active HapticPlugin in the scene        
         hapticPlugin = Object.FindAnyObjectByType<HapticPlugin>();
         if (hapticPlugin == null)
         {
@@ -88,43 +118,90 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
             return;
         }
 
-        // 1. Vector from entry circle center to needle tip
-        Vector3 displacement = needleTip.position - entryCircleTransform.position;
+        // 1. Verify if needleTip is inside the configured bounding box volume
+        isInsideBoundingBox = CheckInsideBoundingBox(needleTip.position);
 
-        // 2. Trajectory axis pointing inward along circle's forward vector
+        if (!isInsideBoundingBox)
+        {
+            // Instantly cancel force if needle leaves the anatomical bounding box
+            isPenetrating = false;
+            ResetPluginForce();
+            return;
+        }
+
+        // 2. Vector from entry circle center to needle tip
+        Vector3 displacement = needleTip.position - entryCircleTransform.position;
         Vector3 punctureAxis = entryCircleTransform.forward.normalized;
 
         // 3. Project to compute depth in millimeters along insertion axis
         float depthMeters = Vector3.Dot(displacement, punctureAxis);
         depthMillimeters = depthMeters * 1000.0f;
 
-        // 4. Calculate lateral deviation off-axis (in mm) for bone collisions
-        Vector3 lateralVector = displacement - (depthMeters * punctureAxis);
-        lateralOffsetMm = lateralVector.magnitude * 1000.0f;
+        // 4. Lateral deviation vector from the 1D line
+        Vector3 targetPointOnAxis = entryCircleTransform.position + (punctureAxis * depthMeters);
+        Vector3 lateralDeviation = needleTip.position - targetPointOnAxis;
+        lateralOffsetMm = lateralDeviation.magnitude * 1000.0f;
 
+        // 5. Check if entry is permitted (only starts if crossing the front surface close to the aperture)
+        if (!isPenetrating)
+        {
+            bool withinApproachDistance = depthMillimeters > 0.0f && depthMillimeters <= surfaceEntryProximityMm;
+            bool withinApertureRadius = lateralOffsetMm <= maxEntryApertureRadiusMm;
+
+            if (withinApproachDistance && withinApertureRadius)
+            {
+                isPenetrating = true;
+                entryOrientation = (needleMesh != null) ? needleMesh.rotation : entryCircleTransform.rotation;
+            }
+            else
+            {
+                // Needle is inside the bounding box but entered from the side/back or bypassed the skin aperture
+                ResetPluginForce();
+                return;
+            }
+        }
+
+        // 6. Active penetration handling
         if (depthMillimeters > 0.0f)
         {
-            isPenetrating = true;
+            // Lock visual mesh rotation along axis to mimic rigid needle in tissue
+            if (needleMesh != null)
+            {
+                needleMesh.rotation = entryOrientation;
+            }
 
-            // 5. Compute the piecewise polynomial force based on current tissue layer
-            float rawForce = CalculateLayerForce(depthMillimeters, lateralOffsetMm);
+            // Compute longitudinal puncture resistance
+            float layerForceN = CalculateLayerForce(depthMillimeters, lateralOffsetMm);
 
-            // 6. Clamp total force to Touch/Omni continuous limit (3.3 N)
-            appliedForceN = Mathf.Clamp(rawForce, 0.0f, maxDeviceForceN);
+            // Retrieve physical device linear velocity (CurrentVelocity is in mm/s -> convert to m/s)
+            Vector3 worldVelocity = hapticPlugin.transform.TransformDirection(hapticPlugin.CurrentVelocity * 0.001f); 
+            float axialVelocity = Vector3.Dot(worldVelocity, punctureAxis);
+            Vector3 lateralVelocity = worldVelocity - (punctureAxis * axialVelocity);
 
-            // 7. Force direction opposes insertion (points back outward)
-            Vector3 opposingDirection = -punctureAxis;
+            // Axial damping (oppose inward travel flutter)
+            float axialDampingForce = (axialVelocity > 0.0f) ? (insertionDamping * axialVelocity) : 0.0f;
+            Vector3 axialForceVector = -punctureAxis * (layerForceN + axialDampingForce);
 
-            // 8. Transform direction to HapticPlugin local space
-            Vector3 deviceLocalDir = hapticPlugin.transform.InverseTransformDirection(opposingDirection).normalized;
+            // Virtual fixture channel (PD Controller)
+            Vector3 lateralRestoringForce = (-channelStiffnessK * lateralDeviation) - (channelDampingB * lateralVelocity);
 
-            // 9. Deliver force directly to device hardware channel
-            hapticPlugin.ConstForceGDir = deviceLocalDir; //[cite: 3]
-            hapticPlugin.ConstForceGMag = appliedForceN / maxDeviceForceN; //[cite: 3]
+            // Combine axial resistance + lateral channel force
+            Vector3 totalForceVector = axialForceVector + lateralRestoringForce;
+            float totalForceMag = totalForceVector.magnitude;
+
+            // Clamp to Touch/Omni continuous limit (3.3 N)
+            appliedForceN = Mathf.Clamp(totalForceMag, 0.0f, maxDeviceForceN);
+
+            Vector3 forceDirection = (totalForceMag > 0.0001f) ? (totalForceVector / totalForceMag) : Vector3.zero;
+            Vector3 deviceLocalDir = hapticPlugin.transform.InverseTransformDirection(forceDirection).normalized;
+
+            // Deliver force directly to device hardware channel
+            hapticPlugin.ConstForceGDir = deviceLocalDir; 
+            hapticPlugin.ConstForceGMag = appliedForceN / maxDeviceForceN; 
 
             if (!forceActive)
             {
-                hapticPlugin.EnableConstantForce(); //[cite: 3]
+                hapticPlugin.EnableConstantForce(); 
                 forceActive = true;
             }
         }
@@ -133,6 +210,20 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
             isPenetrating = false;
             ResetPluginForce();
         }
+    }
+
+    private bool CheckInsideBoundingBox(Vector3 worldPos)
+    {
+        if (targetBoundingBox == null)
+            return true; // If unassigned, fall back to free volume
+
+        // Convert world point to BoxCollider local space to account for position, rotation, scale, and center
+        Vector3 localPoint = targetBoundingBox.transform.InverseTransformPoint(worldPos) - targetBoundingBox.center;
+        Vector3 halfSize = targetBoundingBox.size * 0.5f;
+
+        return Mathf.Abs(localPoint.x) <= halfSize.x &&
+               Mathf.Abs(localPoint.y) <= halfSize.y &&
+               Mathf.Abs(localPoint.z) <= halfSize.z;
     }
 
     private float CalculateLayerForce(float depth, float lateralOffset)
@@ -150,11 +241,12 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
         // 1. Skin (Cubic polynomial)
         if (depth <= thickSkin)
         {
+            duralPunctureOccurred = false;
             currentLayer = LumbarLayer.Skin;
             xFixed = depth;
             force = (0.0235f + 0.0116f * (xFixed / scalingCO)
                     - 0.0046f * Mathf.Pow(xFixed / scalingCO, 2)
-                    + 0.0025f * Mathf.Pow(xFixed / scalingCO, 3)) * deviceForceScaling; //[cite: 1]
+                    + 0.0025f * Mathf.Pow(xFixed / scalingCO, 3)) * deviceForceScaling; 
         }
         // 2. Fat (Quadratic polynomial, with smooth blend at boundary to prevent flutter)
         else if (depth <= thickFat)
@@ -162,14 +254,12 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
             currentLayer = LumbarLayer.Fat;
             xFixed = depth - thickSkin;
             float rawFatForce = (6.0372f + 0.4516f * (xFixed / scalingCO)
-                                - 0.5287f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; //[cite: 1]
+                                - 0.5287f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
 
-            // End-of-skin base force
             float skinExitForce = (0.0235f + 0.0116f * (thickSkin / scalingCO)
                                   - 0.0046f * Mathf.Pow(thickSkin / scalingCO, 2)
-                                  + 0.0025f * Mathf.Pow(thickSkin / scalingCO, 3)) * deviceForceScaling; //[cite: 1]
+                                  + 0.0025f * Mathf.Pow(thickSkin / scalingCO, 3)) * deviceForceScaling; 
 
-            // Blend smoothly over boundaryBlendWidthMm from skin to fat
             float t = Mathf.Clamp01(xFixed / boundaryBlendWidthMm);
             force = Mathf.Lerp(skinExitForce, rawFatForce, Mathf.SmoothStep(0.0f, 1.0f, t));
         }
@@ -179,7 +269,7 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
             currentLayer = LumbarLayer.SupraspinousLigamentMS;
             xFixed = depth - thickFat;
             force = (1.9736f + 0.8287f * (xFixed / scalingCO)
-                    + 0.1078f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; //[cite: 1]
+                    + 0.1078f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
         }
         // 4. Supraspinous Ligament (MS) - Region 2
         else if (depth <= thickMS_After)
@@ -187,20 +277,20 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
             currentLayer = LumbarLayer.SupraspinousLigamentMS;
             xFixed = depth - thickMS_Before;
             force = (4.354f - 2.2543f * (xFixed / scalingCO)
-                    + 0.2902f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; //[cite: 1]
+                    + 0.2902f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
         }
         // 5. Interspinous Ligament (IL) - Linear ramp
         else if (depth <= thickIL_Before)
         {
             currentLayer = LumbarLayer.InterspinousLigamentIL;
             xFixed = depth - thickMS_After;
-            force = (4.4062f + 0.9598f * (xFixed / scalingCO)) * deviceForceScaling; //[cite: 1]
+            force = (4.4062f + 0.9598f * (xFixed / scalingCO)) * deviceForceScaling; 
         }
         // 6. Interspinous Ligament (IL) - Plateau
         else if (depth <= thickIL_After)
         {
             currentLayer = LumbarLayer.InterspinousLigamentIL;
-            force = 7.467f * deviceForceScaling; //[cite: 1]
+            force = 7.467f * deviceForceScaling; 
         }
         // 7. Ligamentum Flavum (LF) - Region 1
         else if (depth <= thickLF_Before)
@@ -208,7 +298,7 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
             currentLayer = LumbarLayer.LigamentumFlavumLF;
             xFixed = depth - thickIL_After;
             force = (7.467f + 1.5029f * (xFixed / scalingCO)
-                    - 0.0583f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; //[cite: 1]
+                    - 0.0583f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
         }
         // 8. Ligamentum Flavum (LF) - Peak prior to release
         else if (depth <= thickLF_After)
@@ -216,19 +306,30 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
             currentLayer = LumbarLayer.LigamentumFlavumLF;
             xFixed = depth - thickLF_Before;
             force = (12.133f - 0.1693f * (xFixed / scalingCO)
-                    - 0.1177f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; //[cite: 1]
+                    - 0.1177f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
         }
         // 9. Epidural Space (Loss of Resistance - LOR)
         else if (depth <= thickES)
         {
             currentLayer = LumbarLayer.EpiduralSpaceES;
-            force = 0.0f; // Drop to 0 N[cite: 1]
+            force = 0.0f; // Drop to 0 N
         }
-        // 10. Dura Mater / Dural Puncture
-        else
+        // 10. Dura Mater (With smooth ramp up to 3N puncture force)
+        else if (depth <= thickDura)
         {
             currentLayer = LumbarLayer.DuraMater;
-            duralPunctureOccurred = true; //[cite: 1]
+            xFixed = depth - thickES;
+
+            float blendRange = Mathf.Min(boundaryBlendWidthMm, thickDura);
+            float t = Mathf.Clamp01(xFixed / blendRange);
+            force = Mathf.Lerp(0.0f, duraPunctureForceN, Mathf.SmoothStep(0.0f, 1.0f, t));
+            //duralPunctureOccurred = true;
+        }
+        // 11. Subarachnoid Space (Dural Pop / Loss of Resistance into CSF)
+        else
+        {
+            currentLayer = LumbarLayer.SubarachnoidSpace;
+            duralPunctureOccurred = true;
             force = 0.0f;
         }
 
@@ -242,8 +343,8 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
 
         if (hapticPlugin != null && forceActive)
         {
-            hapticPlugin.ConstForceGMag = 0.0f; //[cite: 3]
-            hapticPlugin.DisableContantForce(); //[cite: 3]
+            hapticPlugin.ConstForceGMag = 0.0f; 
+            hapticPlugin.DisableContantForce(); 
             forceActive = false;
         }
     }
@@ -257,15 +358,12 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
     {
         if (entryCircleTransform != null)
         {
-            // Entry point disc
             Gizmos.color = Color.cyan;
-            Gizmos.DrawWireSphere(entryCircleTransform.position, 0.015f);
+            Gizmos.DrawWireSphere(entryCircleTransform.position, maxEntryApertureRadiusMm * 0.001f);
 
-            // Trajectory ray
             Gizmos.color = Color.blue;
-            Gizmos.DrawRay(entryCircleTransform.position, entryCircleTransform.forward * (thickES / 1000.0f));
+            Gizmos.DrawRay(entryCircleTransform.position, entryCircleTransform.forward * ((thickES + thickDura) / 1000.0f));
 
-            // Epidural loss-of-resistance point
             Vector3 esPoint = entryCircleTransform.position + entryCircleTransform.forward * (thickLF_After / 1000.0f);
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(esPoint, 0.005f);
