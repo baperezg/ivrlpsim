@@ -179,8 +179,12 @@ public class LumbarPunctureMonteCarlo : MonoBehaviour
         Vector3 direction = end - start;
         float distance = direction.magnitude;
         Vector3 dirNorm = direction.normalized;
+        int boneLayerMask = LayerMask.GetMask(boneTag);
 
         RaycastHit[] hits = Physics.RaycastAll(start, dirNorm, distance);
+        //RaycastHit[] hits = Physics.RaycastAll(start, dirNorm, distance, boneLayerMask);
+
+        Debug.Log("Hits" + hits.Length);
 
         bool hitBone = false;
 
@@ -192,6 +196,7 @@ public class LumbarPunctureMonteCarlo : MonoBehaviour
                 break;
             }
         }
+        Debug.Log("Hit bone" + hitBone);
 
         bool isValid = !hitBone;
         float score = 0f;

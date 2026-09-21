@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
 using System.Threading;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 public class NeedleKinematicsRecorder : MonoBehaviour
 {
@@ -19,42 +20,45 @@ public class NeedleKinematicsRecorder : MonoBehaviour
     [SerializeField] private Transform targetTransform;
 
     [Header("Sampling Configuration")]
-    [Tooltip("Sampling interval in milliseconds (e.g., 10 for 100Hz, 20 for 50Hz)")]
-    [Range(5, 500)]
+    [Tooltip("Sampling interval in milliseconds (e.g., 10 for 100Hz, 20 for 50Hz, 50 for 20Hz)")]
+    [Range(2, 200)]
     [SerializeField] private int sampleIntervalMs = 10;
 
     [Header("Output Settings")]
-    [SerializeField] private string filePrefix = "LP_Kinematics";
+    [SerializeField] private string filePrefix = "LP_Kinematics_SW";
     [SerializeField] private string outputSubfolder = "Recordings";
 
-    // Attempt and State tracking
-    private bool _isRecording = false;
-    private int _attemptCounter = 0;
-    private float _timeAccumulator = 0f;
-    private float _sampleIntervalSec;
-    private float _attemptStartTime;
+    // ------------------------------------------------------------------------
+    // Thread-safe data state snapshot (Transferred from Unity to Sampling loop)
+    // ------------------------------------------------------------------------
+    private struct NeedleStateSnapshot
+    {
+        public Vector3 position;
+        public Quaternion rotation;
+        public Vector3 eulerAngles;
+        public Vector3 force;
+        public float targetDistance;
+        public bool isPenetrating;
+        public bool isInsideBoundingBox;
+        public bool duralPunctureOccurred;
+    }
 
-    // Kinematics state registers
-    private Vector3 _lastPos;
-    private Vector3 _lastVel;
-    private Vector3 _lastAcc;
-    private float _lastSampleTime;
-    private bool _hasFirstSample = false;
+    private NeedleStateSnapshot _latestSnapshot;
+    private readonly object _snapshotLock = new object();
 
-    // Multi-threaded file writer primitives
+    // High-resolution Timing & Threads
+    private Thread _samplingThread;
+    private Thread _writingThread;
+    private volatile bool _threadsActive = false;
+
     private readonly ConcurrentQueue<string> _logQueue = new ConcurrentQueue<string>();
-    private Thread _writeThread;
-    private volatile bool _isRunning = false;
     private string _directoryPath;
-
-    // Reflection cache for force retrieval if standard properties are named differently
-    private FieldInfo _vector3ForceField;
-    private PropertyInfo _vector3ForceProp;
-    private FieldInfo _floatForceField;
-    private PropertyInfo _floatForceProp;
+    private int _attemptCounter = 0;
 
     private const string FILE_SWITCH_PREFIX = "__SWITCH_FILE__:";
-    private const string CSV_HEADER = "Timestamp_s," +
+
+    // Added DeltaTime_s right after Timestamp_s
+    private const string CSV_HEADER = "Timestamp_s,DeltaTime_s," +
                                       "PosX,PosY,PosZ," +
                                       "RotX,RotY,RotZ," +
                                       "QuatX,QuatY,QuatZ,QuatW," +
@@ -72,172 +76,220 @@ public class NeedleKinematicsRecorder : MonoBehaviour
 
         if (pluginForce == null)
             pluginForce = GetComponent<LumbarPunctureDirectPluginForce>();
-
-        CacheForceMembers();
     }
 
     private void Start()
     {
-        _sampleIntervalSec = sampleIntervalMs / 1000f;
-
         _directoryPath = Path.Combine(Application.dataPath, "..", outputSubfolder);
         if (!Directory.Exists(_directoryPath))
         {
             Directory.CreateDirectory(_directoryPath);
         }
 
-        // Spin up background logging thread once for the entire session
-        _isRunning = true;
-        _writeThread = new Thread(ProcessFileQueue)
+        _threadsActive = true;
+
+        // 1. Thread for high-frequency kinematics sampling
+        _samplingThread = new Thread(SamplingWorkerLoop)
         {
+            Name = "Kinematics_Sampler_Thread",
+            IsBackground = true,
+            Priority = System.Threading.ThreadPriority.Highest
+        };
+        _samplingThread.Start();
+
+        // 2. Thread for asynchronous disk I/O
+        _writingThread = new Thread(FileWritingWorkerLoop)
+        {
+            Name = "Kinematics_Writer_Thread",
             IsBackground = true,
             Priority = System.Threading.ThreadPriority.BelowNormal
         };
-        _writeThread.Start();
+        _writingThread.Start();
     }
 
-    private void Update()
+    private void LateUpdate()
     {
-        if (pluginForce == null || needleTransform == null) return;
+        if (needleTransform == null || pluginForce == null) return;
 
-        // Condition to start: penetration within the bounding box and dura not yet pierced
-        bool shouldStart = pluginForce.isPenetrating &&
-                           pluginForce.isInsideBoundingBox &&
-                           !pluginForce.duralPunctureOccurred;
+        Vector3 pos = needleTransform.position;
+        Quaternion rot = needleTransform.rotation;
+        Vector3 euler = rot.eulerAngles;
+        Vector3 force = GetCurrentNeedleForce();
+        float dist = (targetTransform != null) ? Vector3.Distance(pos, targetTransform.position) : 0f;
 
-        // Condition 1 to stop: dura mater reached (Success)
-        bool duraReached = pluginForce.duralPunctureOccurred;
+        bool penetrating = pluginForce.isPenetrating;
+        bool insideBox = pluginForce.isInsideBoundingBox;
+        bool duraPunctured = pluginForce.duralPunctureOccurred;
 
-        // Condition 2 to stop: needle withdrawn outside target bounds (Aborted/Incomplete attempt)
-        bool needleWithdrawn = !pluginForce.isPenetrating && !pluginForce.isInsideBoundingBox;
-
-        // State Transitions
-        if (shouldStart && !_isRecording)
+        lock (_snapshotLock)
         {
-            StartNewAttempt();
-        }
-        else if (_isRecording && (duraReached || needleWithdrawn))
-        {
-            // If the dura was reached, capture the final terminal data point
-            if (duraReached)
-            {
-                SampleData(isDuraTerminalSample: true);
-                Debug.Log($"[KinematicsRecorder] DURAL PUNCTURE DETECTED! Target reached. Finalized Attempt {_attemptCounter}.");
-            }
-            else
-            {
-                Debug.Log($"[KinematicsRecorder] Needle withdrawn before reaching dura. Finalized Attempt {_attemptCounter}.");
-            }
-
-            StopAttempt();
-        }
-
-        // Periodic sampling loop during an active attempt
-        if (_isRecording)
-        {
-            _timeAccumulator += Time.unscaledDeltaTime;
-
-            while (_timeAccumulator >= _sampleIntervalSec)
-            {
-                SampleData(isDuraTerminalSample: false);
-                _timeAccumulator -= _sampleIntervalSec;
-            }
+            _latestSnapshot.position = pos;
+            _latestSnapshot.rotation = rot;
+            _latestSnapshot.eulerAngles = euler;
+            _latestSnapshot.force = force;
+            _latestSnapshot.targetDistance = dist;
+            _latestSnapshot.isPenetrating = penetrating;
+            _latestSnapshot.isInsideBoundingBox = insideBox;
+            _latestSnapshot.duralPunctureOccurred = duraPunctured;
         }
     }
 
-    private void StartNewAttempt()
+    private void SamplingWorkerLoop()
     {
-        _attemptCounter++;
-        _isRecording = true;
-        _hasFirstSample = false;
-        _attemptStartTime = Time.unscaledTime;
-        _timeAccumulator = 0f;
+        long ticksPerMillisecond = Stopwatch.Frequency / 1000;
+        long sampleIntervalTicks = sampleIntervalMs * ticksPerMillisecond;
 
-        // Build unique file path for this specific attempt
-        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string fileName = $"{filePrefix}_Attempt_{_attemptCounter:D2}_{timestamp}_{sampleIntervalMs}ms.csv";
-        string filePath = Path.Combine(_directoryPath, fileName);
+        Stopwatch stopwatch = new Stopwatch();
+        stopwatch.Start();
 
-        // Instruct worker thread to switch to the new attempt file
-        _logQueue.Enqueue(FILE_SWITCH_PREFIX + filePath);
-        _logQueue.Enqueue(CSV_HEADER);
+        long nextSampleTick = stopwatch.ElapsedTicks;
+        long attemptStartTick = 0;
+        long lastSampleTick = 0;
 
-        Debug.Log($"[KinematicsRecorder] Started Attempt {_attemptCounter}. Output: {fileName}");
+        bool isRecording = false;
+        bool hasFirstSample = false;
+
+        Vector3 lastPos = Vector3.zero;
+        Vector3 lastVel = Vector3.zero;
+        Vector3 lastAcc = Vector3.zero;
+
+        while (_threadsActive)
+        {
+            long currentTicks = stopwatch.ElapsedTicks;
+
+            if (currentTicks < nextSampleTick)
+            {
+                long ticksRemaining = nextSampleTick - currentTicks;
+                if (ticksRemaining > (2 * ticksPerMillisecond))
+                {
+                    Thread.Sleep(1);
+                }
+                else
+                {
+                    Thread.SpinWait(10);
+                }
+                continue;
+            }
+
+            nextSampleTick += sampleIntervalTicks;
+
+            if (currentTicks - nextSampleTick > sampleIntervalTicks)
+            {
+                nextSampleTick = currentTicks + sampleIntervalTicks;
+            }
+
+            NeedleStateSnapshot state;
+            lock (_snapshotLock)
+            {
+                state = _latestSnapshot;
+            }
+
+            bool shouldRecord = state.isPenetrating && state.isInsideBoundingBox && !state.duralPunctureOccurred;
+            bool duraReached = state.duralPunctureOccurred;
+            bool withdrawn = !state.isPenetrating && !state.isInsideBoundingBox;
+
+            // --- State Transitions ---
+            if (shouldRecord && !isRecording)
+            {
+                _attemptCounter++;
+                isRecording = true;
+                hasFirstSample = false;
+                attemptStartTick = currentTicks;
+                lastSampleTick = currentTicks;
+
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string fileName = $"{filePrefix}_Attempt_{_attemptCounter:D2}_{timestamp}_{sampleIntervalMs}ms.csv";
+                string filePath = Path.Combine(_directoryPath, fileName);
+
+                _logQueue.Enqueue(FILE_SWITCH_PREFIX + filePath);
+                _logQueue.Enqueue(CSV_HEADER);
+            }
+            else if (isRecording && (duraReached || withdrawn))
+            {
+                if (duraReached)
+                {
+                    EmitSample(ref state, currentTicks, attemptStartTick, lastSampleTick,
+                               hasFirstSample, ref lastPos, ref lastVel, ref lastAcc, isDura: 1);
+                }
+
+                isRecording = false;
+                hasFirstSample = false;
+                continue;
+            }
+
+            // --- Active Sampling & Numerical Derivatives ---
+            if (isRecording)
+            {
+                EmitSample(ref state, currentTicks, attemptStartTick, lastSampleTick,
+                           hasFirstSample, ref lastPos, ref lastVel, ref lastAcc, isDura: 0);
+
+                lastSampleTick = currentTicks;
+                hasFirstSample = true;
+            }
+        }
     }
 
-    private void StopAttempt()
+    private void EmitSample(
+        ref NeedleStateSnapshot state,
+        long currentTicks,
+        long attemptStartTick,
+        long lastSampleTick,
+        bool hasFirstSample,
+        ref Vector3 lastPos,
+        ref Vector3 lastVel,
+        ref Vector3 lastAcc,
+        int isDura)
     {
-        _isRecording = false;
-    }
-
-    private void SampleData(bool isDuraTerminalSample)
-    {
-        float currentTime = Time.unscaledTime;
-        Vector3 currentPos = needleTransform.position;
-        Quaternion currentRot = needleTransform.rotation;
-        Vector3 currentEuler = currentRot.eulerAngles;
-
         Vector3 vel = Vector3.zero;
         Vector3 acc = Vector3.zero;
         Vector3 jerk = Vector3.zero;
 
-        if (_hasFirstSample)
+        // Compute ground-truth dt from elapsed stopwatch ticks
+        float dt = 0f;
+        if (hasFirstSample)
         {
-            float dt = currentTime - _lastSampleTime;
-            if (dt > 0.0001f)
+            dt = (float)(currentTicks - lastSampleTick) / Stopwatch.Frequency;
+            if (dt > 0.00001f)
             {
-                // Numerical derivatives
-                vel = (currentPos - _lastPos) / dt;
-                acc = (vel - _lastVel) / dt;
-                jerk = (acc - _lastAcc) / dt;
+                // 1st Derivative: Velocity (m/s)
+                vel = (state.position - lastPos) / dt;
+
+                // 2nd Derivative: Acceleration (m/s²)
+                acc = (vel - lastVel) / dt;
+
+                // 3rd Derivative: Jerk (m/s³)
+                jerk = (acc - lastAcc) / dt;
             }
         }
-        else
-        {
-            _hasFirstSample = true;
-        }
 
-        // Update tracking registers
-        _lastPos = currentPos;
-        _lastVel = vel;
-        _lastAcc = acc;
-        _lastSampleTime = currentTime;
+        lastPos = state.position;
+        lastVel = vel;
+        lastAcc = acc;
 
-        // Force extraction
-        Vector3 forceVector = GetCurrentNeedleForce();
-
-        // Target distance
-        float targetDistance = 0f;
-        if (targetTransform != null)
-        {
-            targetDistance = Vector3.Distance(currentPos, targetTransform.position);
-        }
-
-        float elapsedTime = currentTime - _attemptStartTime;
-        int duraFlagValue = isDuraTerminalSample ? 1 : 0;
+        float elapsedTime = (float)(currentTicks - attemptStartTick) / Stopwatch.Frequency;
 
         string csvLine = string.Format(
             CultureInfo.InvariantCulture,
-            "{0:F4}," +                                       // 0: Timestamp
-            "{1:F5},{2:F5},{3:F5}," +                         // 1-3: Pos X, Y, Z
-            "{4:F3},{5:F3},{6:F3}," +                         // 4-6: Rot Euler X, Y, Z
-            "{7:F4},{8:F4},{9:F4},{10:F4}," +                 // 7-10: Quat X, Y, Z, W
-            "{11:F5},{12:F5},{13:F5},{14:F5}," +              // 11-14: Vel X, Y, Z, Speed
-            "{15:F5},{16:F5},{17:F5},{18:F5}," +              // 15-18: Acc X, Y, Z, AccMag
-            "{19:F5},{20:F5},{21:F5},{22:F5}," +              // 19-22: Jerk X, Y, Z, JerkMag
-            "{23:F4},{24:F4},{25:F4},{26:F4}," +              // 23-26: Force X, Y, Z, ForceMag
-            "{27:F5}," +                                      // 27: Target Distance
-            "{28}",                                           // 28: IsDuraReached (0 or 1)
-            elapsedTime,
-            currentPos.x, currentPos.y, currentPos.z,
-            currentEuler.x, currentEuler.y, currentEuler.z,
-            currentRot.x, currentRot.y, currentRot.z, currentRot.w,
+            "{0:F5},{1:F6}," +                                // Timestamp_s, DeltaTime_s
+            "{2:F5},{3:F5},{4:F5}," +                         // Pos X, Y, Z
+            "{5:F3},{6:F3},{7:F3}," +                         // Rot Euler X, Y, Z
+            "{8:F4},{9:F4},{10:F4},{11:F4}," +                // Quat X, Y, Z, W
+            "{12:F5},{13:F5},{14:F5},{15:F5}," +              // Vel X, Y, Z, Speed
+            "{16:F5},{17:F5},{18:F5},{19:F5}," +              // Acc X, Y, Z, AccMag
+            "{20:F5},{21:F5},{22:F5},{23:F5}," +              // Jerk X, Y, Z, JerkMag
+            "{24:F4},{25:F4},{26:F4},{27:F4}," +              // Force X, Y, Z, ForceMag
+            "{28:F5}," +                                      // Target Distance
+            "{29}",                                           // IsDuraReached (0 or 1)
+            elapsedTime, dt,
+            state.position.x, state.position.y, state.position.z,
+            state.eulerAngles.x, state.eulerAngles.y, state.eulerAngles.z,
+            state.rotation.x, state.rotation.y, state.rotation.z, state.rotation.w,
             vel.x, vel.y, vel.z, vel.magnitude,
             acc.x, acc.y, acc.z, acc.magnitude,
             jerk.x, jerk.y, jerk.z, jerk.magnitude,
-            forceVector.x, forceVector.y, forceVector.z, forceVector.magnitude,
-            targetDistance,
-            duraFlagValue
+            state.force.x, state.force.y, state.force.z, state.force.magnitude,
+            state.targetDistance,
+            isDura
         );
 
         _logQueue.Enqueue(csvLine);
@@ -245,69 +297,25 @@ public class NeedleKinematicsRecorder : MonoBehaviour
 
     private Vector3 GetCurrentNeedleForce()
     {
-        if (pluginForce == null)
-            return Vector3.zero;
-        else
+        if (pluginForce == null) return Vector3.zero;
+
+        try
+        {            
             return new Vector3(0, 0, pluginForce.appliedForceN);
-        /*
-        if (_vector3ForceField != null)
-            return (Vector3)_vector3ForceField.GetValue(pluginForce);
-
-        if (_vector3ForceProp != null)
-            return (Vector3)_vector3ForceProp.GetValue(pluginForce);
-
-        if (_floatForceField != null)
-        {
-            float f = (float)_floatForceField.GetValue(pluginForce);
-            return needleTransform.forward * f;
         }
-
-        if (_floatForceProp != null)
+        catch
         {
-            float f = (float)_floatForceProp.GetValue(pluginForce);
-            return needleTransform.forward * f;
-        }
-
-        return Vector3.zero;
-        */
-    }
-
-    private void CacheForceMembers()
-    {
-        if (pluginForce == null) return;
-
-        Type type = pluginForce.GetType();
-        BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-
-        string[] vectorCandidates = { "currentForce", "appliedForce", "needleForce", "forceVector", "totalForce", "force" };
-        string[] floatCandidates = { "forceMagnitude", "currentForceMag", "reactionForce", "penetrationForce" };
-
-        foreach (string name in vectorCandidates)
-        {
-            FieldInfo f = type.GetField(name, flags);
-            if (f != null && f.FieldType == typeof(Vector3)) { _vector3ForceField = f; return; }
-
-            PropertyInfo p = type.GetProperty(name, flags);
-            if (p != null && p.PropertyType == typeof(Vector3)) { _vector3ForceProp = p; return; }
-        }
-
-        foreach (string name in floatCandidates)
-        {
-            FieldInfo f = type.GetField(name, flags);
-            if (f != null && (f.FieldType == typeof(float) || f.FieldType == typeof(double))) { _floatForceField = f; return; }
-
-            PropertyInfo p = type.GetProperty(name, flags);
-            if (p != null && (p.PropertyType == typeof(float) || p.PropertyType == typeof(double))) { _floatForceProp = p; return; }
+            return Vector3.zero;
         }
     }
 
-    private void ProcessFileQueue()
+    private void FileWritingWorkerLoop()
     {
         StreamWriter currentWriter = null;
 
         try
         {
-            while (_isRunning || !_logQueue.IsEmpty)
+            while (_threadsActive || !_logQueue.IsEmpty)
             {
                 while (_logQueue.TryDequeue(out string line))
                 {
@@ -334,7 +342,7 @@ public class NeedleKinematicsRecorder : MonoBehaviour
                     currentWriter.Flush();
                 }
 
-                Thread.Sleep(10);
+                Thread.Sleep(15);
             }
         }
         finally
@@ -349,15 +357,28 @@ public class NeedleKinematicsRecorder : MonoBehaviour
 
     private void OnDestroy()
     {
-        _isRunning = false;
-        if (_writeThread != null && _writeThread.IsAlive)
-            _writeThread.Join(2000);
+        ShutdownThreads();
     }
 
     private void OnApplicationQuit()
     {
-        _isRunning = false;
-        if (_writeThread != null && _writeThread.IsAlive)
-            _writeThread.Join(2000);
+        ShutdownThreads();
+    }
+
+    private void ShutdownThreads()
+    {
+        _threadsActive = false;
+
+        if (_samplingThread != null && _samplingThread.IsAlive)
+        {
+            _samplingThread.Join(1000);
+        }
+
+        if (_writingThread != null && _writingThread.IsAlive)
+        {
+            _writingThread.Join(2000);
+        }
     }
 }
+// Force:
+// return new Vector3(0, 0, pluginForce.appliedForceN);
