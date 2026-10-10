@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 def load_data(csv_path):
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, sep=";")
     df.columns = [c.strip() for c in df.columns]
     return df
 

@@ -10,22 +10,22 @@ using Debug = UnityEngine.Debug;
 public class NeedleKinematicsRecorder : MonoBehaviour
 {
     [Header("Target References")]
-    [Tooltip("Reference to the LumbarPunctureDirectPluginForce script containing state flags and force")]
-    [SerializeField] private LumbarPunctureDirectPluginForce pluginForce;
+    [Tooltip("Reference to the VoxelDirectForce script containing voxel state flags, measurements, and force.")]
+    [SerializeField] private VoxelDirectForce voxelDirectForce;
 
-    [Tooltip("Transform of the needle tip or needle body to track")]
+    [Tooltip("Transform of the needle tip or needle body to track.")]
     [SerializeField] private Transform needleTransform;
 
-    [Tooltip("Optional static target position (e.g., subarachnoid target) for deviation metrics")]
+    [Tooltip("Optional static target position (e.g., subarachnoid target) for deviation metrics.")]
     [SerializeField] private Transform targetTransform;
 
     [Header("Sampling Configuration")]
-    [Tooltip("Sampling interval in milliseconds (e.g., 10 for 100Hz, 20 for 50Hz, 50 for 20Hz)")]
+    [Tooltip("Sampling interval in milliseconds (e.g., 10 for 100Hz, 20 for 50Hz, 50 for 20Hz).")]
     [Range(2, 200)]
     [SerializeField] private int sampleIntervalMs = 10;
 
     [Header("Output Settings")]
-    [SerializeField] private string filePrefix = "LP_Kinematics_SW";
+    [SerializeField] private string filePrefix = "LP_Kinematics_Voxel";
     [SerializeField] private string outputSubfolder = "Recordings";
 
     // ------------------------------------------------------------------------
@@ -39,8 +39,11 @@ public class NeedleKinematicsRecorder : MonoBehaviour
         public Vector3 force;
         public float targetDistance;
         public bool isPenetrating;
-        public bool isInsideBoundingBox;
         public bool duralPunctureOccurred;
+        public bool isBoneStrike;
+        public float depthMm;
+        public float lateralOffsetMm;
+        public VoxelDirectForce.LumbarLayer layer;
     }
 
     private NeedleStateSnapshot _latestSnapshot;
@@ -57,25 +60,25 @@ public class NeedleKinematicsRecorder : MonoBehaviour
 
     private const string FILE_SWITCH_PREFIX = "__SWITCH_FILE__:";
 
-    // Added DeltaTime_s right after Timestamp_s
-    private const string CSV_HEADER = "Timestamp_s,DeltaTime_s," +
-                                      "PosX,PosY,PosZ," +
-                                      "RotX,RotY,RotZ," +
-                                      "QuatX,QuatY,QuatZ,QuatW," +
-                                      "VelX,VelY,VelZ,Speed_m_s," +
-                                      "AccX,AccY,AccZ,AccMag_m_s2," +
-                                      "JerkX,JerkY,JerkZ,JerkMag_m_s3," +
-                                      "ForceX_N,ForceY_N,ForceZ_N,ForceMag_N," +
-                                      "TargetDistance_m," +
-                                      "IsDuraReached";
+    private const string CSV_HEADER = "Timestamp_s;DeltaTime_s;" +
+                                      "PosX;PosY;PosZ;" +
+                                      "RotX;RotY;RotZ;" +
+                                      "QuatX;QuatY;QuatZ;QuatW;" +
+                                      "VelX;VelY;VelZ;Speed_m_s;" +
+                                      "AccX;AccY;AccZ;AccMag_m_s2;" +
+                                      "JerkX;JerkY;JerkZ;JerkMag_m_s3;" +
+                                      "ForceX_N;ForceY_N;ForceZ_N;ForceMag_N;" +
+                                      "Depth_mm;LateralOffset_mm;" +
+                                      "Layer;TargetDistance_m;" +
+                                      "IsDuraReached;IsBoneStrike";
 
     private void Awake()
     {
         if (needleTransform == null)
             needleTransform = transform;
 
-        if (pluginForce == null)
-            pluginForce = GetComponent<LumbarPunctureDirectPluginForce>();
+        if (voxelDirectForce == null)
+            voxelDirectForce = GetComponent<VoxelDirectForce>();
     }
 
     private void Start()
@@ -109,7 +112,7 @@ public class NeedleKinematicsRecorder : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (needleTransform == null || pluginForce == null) return;
+        if (needleTransform == null || voxelDirectForce == null) return;
 
         Vector3 pos = needleTransform.position;
         Quaternion rot = needleTransform.rotation;
@@ -117,9 +120,12 @@ public class NeedleKinematicsRecorder : MonoBehaviour
         Vector3 force = GetCurrentNeedleForce();
         float dist = (targetTransform != null) ? Vector3.Distance(pos, targetTransform.position) : 0f;
 
-        bool penetrating = pluginForce.isPenetrating;
-        bool insideBox = pluginForce.isInsideBoundingBox;
-        bool duraPunctured = pluginForce.duralPunctureOccurred;
+        bool penetrating = voxelDirectForce.isPenetrating;
+        bool duraPunctured = voxelDirectForce.duralPunctureOccurred;
+        bool boneStruck = voxelDirectForce.CurrentLayer == VoxelDirectForce.LumbarLayer.BoneStrike;
+        float depth = voxelDirectForce.DepthMillimeters;
+        float lateral = voxelDirectForce.LateralOffsetMm;
+        var layer = voxelDirectForce.CurrentLayer;
 
         lock (_snapshotLock)
         {
@@ -129,8 +135,11 @@ public class NeedleKinematicsRecorder : MonoBehaviour
             _latestSnapshot.force = force;
             _latestSnapshot.targetDistance = dist;
             _latestSnapshot.isPenetrating = penetrating;
-            _latestSnapshot.isInsideBoundingBox = insideBox;
             _latestSnapshot.duralPunctureOccurred = duraPunctured;
+            _latestSnapshot.isBoneStrike = boneStruck;
+            _latestSnapshot.depthMm = depth;
+            _latestSnapshot.lateralOffsetMm = lateral;
+            _latestSnapshot.layer = layer;
         }
     }
 
@@ -166,7 +175,7 @@ public class NeedleKinematicsRecorder : MonoBehaviour
                 }
                 else
                 {
-                    Thread.SpinWait(10);
+                    Thread.SpinWait(5);
                 }
                 continue;
             }
@@ -184,9 +193,9 @@ public class NeedleKinematicsRecorder : MonoBehaviour
                 state = _latestSnapshot;
             }
 
-            bool shouldRecord = state.isPenetrating && state.isInsideBoundingBox && !state.duralPunctureOccurred;
+            bool shouldRecord = state.isPenetrating && !state.duralPunctureOccurred;
             bool duraReached = state.duralPunctureOccurred;
-            bool withdrawn = !state.isPenetrating && !state.isInsideBoundingBox;
+            bool withdrawn = !state.isPenetrating;
 
             // --- State Transitions ---
             if (shouldRecord && !isRecording)
@@ -244,20 +253,14 @@ public class NeedleKinematicsRecorder : MonoBehaviour
         Vector3 acc = Vector3.zero;
         Vector3 jerk = Vector3.zero;
 
-        // Compute ground-truth dt from elapsed stopwatch ticks
         float dt = 0f;
         if (hasFirstSample)
         {
             dt = (float)(currentTicks - lastSampleTick) / Stopwatch.Frequency;
             if (dt > 0.00001f)
             {
-                // 1st Derivative: Velocity (m/s)
                 vel = (state.position - lastPos) / dt;
-
-                // 2nd Derivative: Acceleration (m/s²)
                 acc = (vel - lastVel) / dt;
-
-                // 3rd Derivative: Jerk (m/s³)
                 jerk = (acc - lastAcc) / dt;
             }
         }
@@ -270,16 +273,17 @@ public class NeedleKinematicsRecorder : MonoBehaviour
 
         string csvLine = string.Format(
             CultureInfo.InvariantCulture,
-            "{0:F5},{1:F6}," +                                // Timestamp_s, DeltaTime_s
-            "{2:F5},{3:F5},{4:F5}," +                         // Pos X, Y, Z
-            "{5:F3},{6:F3},{7:F3}," +                         // Rot Euler X, Y, Z
-            "{8:F4},{9:F4},{10:F4},{11:F4}," +                // Quat X, Y, Z, W
-            "{12:F5},{13:F5},{14:F5},{15:F5}," +              // Vel X, Y, Z, Speed
-            "{16:F5},{17:F5},{18:F5},{19:F5}," +              // Acc X, Y, Z, AccMag
-            "{20:F5},{21:F5},{22:F5},{23:F5}," +              // Jerk X, Y, Z, JerkMag
-            "{24:F4},{25:F4},{26:F4},{27:F4}," +              // Force X, Y, Z, ForceMag
-            "{28:F5}," +                                      // Target Distance
-            "{29}",                                           // IsDuraReached (0 or 1)
+            "{0:F5};{1:F6};" +                                // Timestamp_s; DeltaTime_s
+            "{2:F5};{3:F5};{4:F5};" +                         // Pos X; Y; Z
+            "{5:F3};{6:F3};{7:F3};" +                         // Rot Euler X; Y; Z
+            "{8:F4};{9:F4};{10:F4};{11:F4};" +                // Quat X; Y; Z; W
+            "{12:F5};{13:F5};{14:F5};{15:F5};" +              // Vel X; Y; Z; Speed
+            "{16:F5};{17:F5};{18:F5};{19:F5};" +              // Acc X; Y; Z; AccMag
+            "{20:F5};{21:F5};{22:F5};{23:F5};" +              // Jerk X; Y; Z; JerkMag
+            "{24:F4};{25:F4};{26:F4};{27:F4};" +              // Force X; Y; Z; ForceMag
+            "{28:F2};{29:F2};" +                              // Depth_mm; LateralOffset_mm
+            "{30};{31:F5};" +                                 // Layer; TargetDistance_m
+            "{32};{33}",                                      // IsDuraReached; IsBoneStrike
             elapsedTime, dt,
             state.position.x, state.position.y, state.position.z,
             state.eulerAngles.x, state.eulerAngles.y, state.eulerAngles.z,
@@ -288,8 +292,11 @@ public class NeedleKinematicsRecorder : MonoBehaviour
             acc.x, acc.y, acc.z, acc.magnitude,
             jerk.x, jerk.y, jerk.z, jerk.magnitude,
             state.force.x, state.force.y, state.force.z, state.force.magnitude,
+            state.depthMm, state.lateralOffsetMm,
+            state.layer.ToString(),
             state.targetDistance,
-            isDura
+            isDura,
+            state.isBoneStrike ? 1 : 0
         );
 
         _logQueue.Enqueue(csvLine);
@@ -297,11 +304,12 @@ public class NeedleKinematicsRecorder : MonoBehaviour
 
     private Vector3 GetCurrentNeedleForce()
     {
-        if (pluginForce == null) return Vector3.zero;
+        if (voxelDirectForce == null) return Vector3.zero;
 
         try
-        {            
-            return new Vector3(0, 0, pluginForce.appliedForceN);
+        {
+            // Maps the scalar appliedForceN along the insertion axis
+            return new Vector3(0, 0, voxelDirectForce.appliedForceN);
         }
         catch
         {
@@ -342,7 +350,7 @@ public class NeedleKinematicsRecorder : MonoBehaviour
                     currentWriter.Flush();
                 }
 
-                Thread.Sleep(15);
+                Thread.Sleep(5);
             }
         }
         finally
@@ -380,5 +388,3 @@ public class NeedleKinematicsRecorder : MonoBehaviour
         }
     }
 }
-// Force:
-// return new Vector3(0, 0, pluginForce.appliedForceN);

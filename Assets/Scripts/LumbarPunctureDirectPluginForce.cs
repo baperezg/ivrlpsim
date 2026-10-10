@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+
 
 public enum LumbarLayer
 {
@@ -101,6 +103,219 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
     private bool forceActive = false;
     private Quaternion entryOrientation;
 
+    // Public getters/setters for encapsulation by State classes
+    public LumbarLayer CurrentLayer { get => currentLayer; set => currentLayer = value; }
+    public float DepthMillimeters => depthMillimeters;
+    public float LateralOffsetMm => lateralOffsetMm;
+
+    //=================== Start of State machine implementation ===================//
+
+    // State Pattern Engine
+    private ITissueState currentState;
+    private readonly Dictionary<LumbarLayer, ITissueState> states = new Dictionary<LumbarLayer, ITissueState>();
+
+    private void Awake()
+    {
+        InitializeStateMachine();
+    }
+
+    private void InitializeStateMachine()
+    {
+        states[LumbarLayer.Outside] = new OutsideState();
+        states[LumbarLayer.BoneStrike] = new BoneStrikeState();
+        states[LumbarLayer.Skin] = new SkinState();
+        states[LumbarLayer.Fat] = new FatState();
+        states[LumbarLayer.SupraspinousLigamentMS] = new SupraspinousLigamentState();
+        states[LumbarLayer.InterspinousLigamentIL] = new InterspinousLigamentState();
+        states[LumbarLayer.LigamentumFlavumLF] = new LigamentumFlavumState();
+        states[LumbarLayer.EpiduralSpaceES] = new EpiduralSpaceState();
+        states[LumbarLayer.DuraMater] = new DuraMaterState();
+        states[LumbarLayer.SubarachnoidSpace] = new SubarachnoidSpaceState();
+
+        currentState = states[LumbarLayer.Outside];
+        currentState.Enter(this);
+    }
+
+    public void TransitionTo(LumbarLayer nextLayer)
+    {
+        if (currentState != null && currentState.Layer == nextLayer) return;
+
+        currentState?.Exit(this);
+        currentState = states[nextLayer];
+        currentLayer = nextLayer;
+        currentState.Enter(this);
+    }
+
+    #region State Pattern Architecture
+
+    public interface ITissueState
+    {
+        LumbarLayer Layer { get; }
+        void Enter(LumbarPunctureDirectPluginForce ctx);
+        float CalculateForce(LumbarPunctureDirectPluginForce ctx);
+        void Exit(LumbarPunctureDirectPluginForce ctx);
+    }
+
+    private class OutsideState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.Outside;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx) => 0.0f;
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    private class BoneStrikeState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.BoneStrike;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx) => ctx.boneStrikeForceN;
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    private class SkinState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.Skin;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { ctx.duralPunctureOccurred = false; }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx)
+        {
+            float xFixed = ctx.DepthMillimeters;
+            float force = (0.0235f + 0.0116f * (xFixed / ctx.scalingCO)
+                          - 0.0046f * Mathf.Pow(xFixed / ctx.scalingCO, 2)
+                          + 0.0025f * Mathf.Pow(xFixed / ctx.scalingCO, 3)) * ctx.deviceForceScaling;
+            return Mathf.Max(0.0f, force);
+        }
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    private class FatState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.Fat;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx)
+        {
+            float xFixed = ctx.DepthMillimeters - ctx.thickSkin;
+            float rawFatForce = (6.0372f + 0.4516f * (xFixed / ctx.scalingCO)
+                                - 0.5287f * Mathf.Pow(xFixed / ctx.scalingCO, 2)) * ctx.deviceForceScaling;
+
+            float skinExitForce = (0.0235f + 0.0116f * (ctx.thickSkin / ctx.scalingCO)
+                                  - 0.0046f * Mathf.Pow(ctx.thickSkin / ctx.scalingCO, 2)
+                                  + 0.0025f * Mathf.Pow(ctx.thickSkin / ctx.scalingCO, 3)) * ctx.deviceForceScaling;
+
+            float t = Mathf.Clamp01(xFixed / ctx.boundaryBlendWidthMm);
+            float force = Mathf.Lerp(skinExitForce, rawFatForce, Mathf.SmoothStep(0.0f, 1.0f, t));
+            return Mathf.Max(0.0f, force);
+        }
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    private class SupraspinousLigamentState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.SupraspinousLigamentMS;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx)
+        {
+            float depth = ctx.DepthMillimeters;
+            float force;
+            if (depth <= ctx.thickMS_Before)
+            {
+                float xFixed = depth - ctx.thickFat;
+                force = (1.9736f + 0.8287f * (xFixed / ctx.scalingCO)
+                        + 0.1078f * Mathf.Pow(xFixed / ctx.scalingCO, 2)) * ctx.deviceForceScaling;
+            }
+            else
+            {
+                float xFixed = depth - ctx.thickMS_Before;
+                force = (4.354f - 2.2543f * (xFixed / ctx.scalingCO)
+                        + 0.2902f * Mathf.Pow(xFixed / ctx.scalingCO, 2)) * ctx.deviceForceScaling;
+            }
+            return Mathf.Max(0.0f, force);
+        }
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    private class InterspinousLigamentState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.InterspinousLigamentIL;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx)
+        {
+            float depth = ctx.DepthMillimeters;
+            float force;
+            if (depth <= ctx.thickIL_Before)
+            {
+                float xFixed = depth - ctx.thickMS_After;
+                force = (4.4062f + 0.9598f * (xFixed / ctx.scalingCO)) * ctx.deviceForceScaling;
+            }
+            else
+            {
+                force = 7.467f * ctx.deviceForceScaling;
+            }
+            return Mathf.Max(0.0f, force);
+        }
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    private class LigamentumFlavumState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.LigamentumFlavumLF;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx)
+        {
+            float depth = ctx.DepthMillimeters;
+            float force;
+            if (depth <= ctx.thickLF_Before)
+            {
+                float xFixed = depth - ctx.thickIL_After;
+                force = (7.467f + 1.5029f * (xFixed / ctx.scalingCO)
+                        - 0.0583f * Mathf.Pow(xFixed / ctx.scalingCO, 2)) * ctx.deviceForceScaling;
+            }
+            else
+            {
+                float xFixed = depth - ctx.thickLF_Before;
+                force = (12.133f - 0.1693f * (xFixed / ctx.scalingCO)
+                        - 0.1177f * Mathf.Pow(xFixed / ctx.scalingCO, 2)) * ctx.deviceForceScaling;
+            }
+            return Mathf.Max(0.0f, force);
+        }
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    private class EpiduralSpaceState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.EpiduralSpaceES;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx) => 0.0f;
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    private class DuraMaterState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.DuraMater;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx)
+        {
+            float xFixed = ctx.DepthMillimeters - ctx.thickES;
+            float blendRange = Mathf.Min(ctx.boundaryBlendWidthMm, ctx.thickDura);
+            float t = Mathf.Clamp01(xFixed / blendRange);
+            float force = Mathf.Lerp(0.0f, ctx.duraPunctureForceN, Mathf.SmoothStep(0.0f, 1.0f, t));
+            return Mathf.Max(0.0f, force);
+        }
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    private class SubarachnoidSpaceState : ITissueState
+    {
+        public LumbarLayer Layer => LumbarLayer.SubarachnoidSpace;
+        public void Enter(LumbarPunctureDirectPluginForce ctx) { ctx.duralPunctureOccurred = true; }
+        public float CalculateForce(LumbarPunctureDirectPluginForce ctx) => 0.0f;
+        public void Exit(LumbarPunctureDirectPluginForce ctx) { }
+    }
+
+    #endregion
+
+
+    //=================== End of State machine implementation ===================//
+
     private void Start()
     {
         hapticPlugin = Object.FindAnyObjectByType<HapticPlugin>();
@@ -170,11 +385,15 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
                 needleMesh.rotation = entryOrientation;
             }
 
-            // Compute longitudinal puncture resistance
-            float layerForceN = CalculateLayerForce(depthMillimeters, lateralOffsetMm);
+            // Resolve State Transitions dynamically (bidirectional traversal & bone collisions)
+            LumbarLayer targetLayer = ResolveTargetLayer(depthMillimeters, lateralOffsetMm);
+            TransitionTo(targetLayer);
+
+            // Delegate calculation to the active state
+            float layerForceN = currentState.CalculateForce(this);
 
             // Retrieve physical device linear velocity (CurrentVelocity is in mm/s -> convert to m/s)
-            Vector3 worldVelocity = hapticPlugin.transform.TransformDirection(hapticPlugin.CurrentVelocity * 0.001f); 
+            Vector3 worldVelocity = hapticPlugin.transform.TransformDirection(hapticPlugin.CurrentVelocity * 0.001f);
             float axialVelocity = Vector3.Dot(worldVelocity, punctureAxis);
             Vector3 lateralVelocity = worldVelocity - (punctureAxis * axialVelocity);
 
@@ -196,8 +415,8 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
             Vector3 deviceLocalDir = hapticPlugin.transform.InverseTransformDirection(forceDirection).normalized;
 
             // Deliver force directly to device hardware channel
-            hapticPlugin.ConstForceGDir = deviceLocalDir; 
-            hapticPlugin.ConstForceGMag = appliedForceN / maxDeviceForceN; 
+            hapticPlugin.ConstForceGDir = deviceLocalDir;
+            hapticPlugin.ConstForceGMag = appliedForceN / maxDeviceForceN;
 
             if (!forceActive)
             {
@@ -212,6 +431,25 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
         }
     }
 
+    private LumbarLayer ResolveTargetLayer(float depth, float lateralOffset)
+    {
+        // Bone collision condition
+        if (depth > thickIL_Before && depth < thickLF_After && lateralOffset > boneRadiusLimitMm)
+        {
+            return LumbarLayer.BoneStrike;
+        }
+
+        if (depth <= thickSkin) return LumbarLayer.Skin;
+        if (depth <= thickFat) return LumbarLayer.Fat;
+        if (depth <= thickMS_After) return LumbarLayer.SupraspinousLigamentMS;
+        if (depth <= thickIL_After) return LumbarLayer.InterspinousLigamentIL;
+        if (depth <= thickLF_After) return LumbarLayer.LigamentumFlavumLF;
+        if (depth <= thickES) return LumbarLayer.EpiduralSpaceES;
+        if (depth <= thickDura) return LumbarLayer.DuraMater;
+
+        return LumbarLayer.SubarachnoidSpace;
+    }
+
     private bool CheckInsideBoundingBox(Vector3 worldPos)
     {
         if (targetBoundingBox == null)
@@ -224,116 +462,6 @@ public class LumbarPunctureDirectPluginForce : MonoBehaviour
         return Mathf.Abs(localPoint.x) <= halfSize.x &&
                Mathf.Abs(localPoint.y) <= halfSize.y &&
                Mathf.Abs(localPoint.z) <= halfSize.z;
-    }
-
-    private float CalculateLayerForce(float depth, float lateralOffset)
-    {
-        // Bone collision: Between Interspinous Ligament and Ligamentum Flavum
-        if (depth > thickIL_Before && depth < thickLF_After && lateralOffset > boneRadiusLimitMm)
-        {
-            currentLayer = LumbarLayer.BoneStrike;
-            return boneStrikeForceN;
-        }
-
-        float xFixed = 0.0f;
-        float force = 0.0f;
-
-        // 1. Skin (Cubic polynomial)
-        if (depth <= thickSkin)
-        {
-            duralPunctureOccurred = false;
-            currentLayer = LumbarLayer.Skin;
-            xFixed = depth;
-            force = (0.0235f + 0.0116f * (xFixed / scalingCO)
-                    - 0.0046f * Mathf.Pow(xFixed / scalingCO, 2)
-                    + 0.0025f * Mathf.Pow(xFixed / scalingCO, 3)) * deviceForceScaling; 
-        }
-        // 2. Fat (Quadratic polynomial, with smooth blend at boundary to prevent flutter)
-        else if (depth <= thickFat)
-        {
-            currentLayer = LumbarLayer.Fat;
-            xFixed = depth - thickSkin;
-            float rawFatForce = (6.0372f + 0.4516f * (xFixed / scalingCO)
-                                - 0.5287f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
-
-            float skinExitForce = (0.0235f + 0.0116f * (thickSkin / scalingCO)
-                                  - 0.0046f * Mathf.Pow(thickSkin / scalingCO, 2)
-                                  + 0.0025f * Mathf.Pow(thickSkin / scalingCO, 3)) * deviceForceScaling; 
-
-            float t = Mathf.Clamp01(xFixed / boundaryBlendWidthMm);
-            force = Mathf.Lerp(skinExitForce, rawFatForce, Mathf.SmoothStep(0.0f, 1.0f, t));
-        }
-        // 3. Supraspinous Ligament (MS) - Region 1
-        else if (depth <= thickMS_Before)
-        {
-            currentLayer = LumbarLayer.SupraspinousLigamentMS;
-            xFixed = depth - thickFat;
-            force = (1.9736f + 0.8287f * (xFixed / scalingCO)
-                    + 0.1078f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
-        }
-        // 4. Supraspinous Ligament (MS) - Region 2
-        else if (depth <= thickMS_After)
-        {
-            currentLayer = LumbarLayer.SupraspinousLigamentMS;
-            xFixed = depth - thickMS_Before;
-            force = (4.354f - 2.2543f * (xFixed / scalingCO)
-                    + 0.2902f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
-        }
-        // 5. Interspinous Ligament (IL) - Linear ramp
-        else if (depth <= thickIL_Before)
-        {
-            currentLayer = LumbarLayer.InterspinousLigamentIL;
-            xFixed = depth - thickMS_After;
-            force = (4.4062f + 0.9598f * (xFixed / scalingCO)) * deviceForceScaling; 
-        }
-        // 6. Interspinous Ligament (IL) - Plateau
-        else if (depth <= thickIL_After)
-        {
-            currentLayer = LumbarLayer.InterspinousLigamentIL;
-            force = 7.467f * deviceForceScaling; 
-        }
-        // 7. Ligamentum Flavum (LF) - Region 1
-        else if (depth <= thickLF_Before)
-        {
-            currentLayer = LumbarLayer.LigamentumFlavumLF;
-            xFixed = depth - thickIL_After;
-            force = (7.467f + 1.5029f * (xFixed / scalingCO)
-                    - 0.0583f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
-        }
-        // 8. Ligamentum Flavum (LF) - Peak prior to release
-        else if (depth <= thickLF_After)
-        {
-            currentLayer = LumbarLayer.LigamentumFlavumLF;
-            xFixed = depth - thickLF_Before;
-            force = (12.133f - 0.1693f * (xFixed / scalingCO)
-                    - 0.1177f * Mathf.Pow(xFixed / scalingCO, 2)) * deviceForceScaling; 
-        }
-        // 9. Epidural Space (Loss of Resistance - LOR)
-        else if (depth <= thickES)
-        {
-            currentLayer = LumbarLayer.EpiduralSpaceES;
-            force = 0.0f; // Drop to 0 N
-        }
-        // 10. Dura Mater (With smooth ramp up to 3N puncture force)
-        else if (depth <= thickDura)
-        {
-            currentLayer = LumbarLayer.DuraMater;
-            xFixed = depth - thickES;
-
-            float blendRange = Mathf.Min(boundaryBlendWidthMm, thickDura);
-            float t = Mathf.Clamp01(xFixed / blendRange);
-            force = Mathf.Lerp(0.0f, duraPunctureForceN, Mathf.SmoothStep(0.0f, 1.0f, t));
-            //duralPunctureOccurred = true;
-        }
-        // 11. Subarachnoid Space (Dural Pop / Loss of Resistance into CSF)
-        else
-        {
-            currentLayer = LumbarLayer.SubarachnoidSpace;
-            duralPunctureOccurred = true;
-            force = 0.0f;
-        }
-
-        return Mathf.Max(0.0f, force);
     }
 
     private void ResetPluginForce()

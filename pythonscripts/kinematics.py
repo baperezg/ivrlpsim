@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.signal import butter, filtfilt
 
 def load_attempt_data(csv_path):
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, sep=";")
     df.columns = [c.strip() for c in df.columns]
     return df
 

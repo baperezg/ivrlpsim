@@ -435,6 +435,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2736025191542454946}
+  - component: {fileID: 6566389528909261474}
   m_Layer: 0
   m_Name: LPanatomy
   m_TagString: Untagged
@@ -468,6 +469,41 @@ Transform:
   - {fileID: 8300091523302956668}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 5.271, y: -178.312, z: 90.213}
+--- !u!114 &6566389528909261474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3365174938709794840}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c5e36b57db4cbd4cbe7d24d2bee2d3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnatomyVoxelCollider
+  fileName: TissueMap.bytes
+  voxelToUnityUnitScale: 0.001
+  axisMultiplier: {x: 1, y: 1, z: 1}
+  manualOffsetMm: {x: 0, y: -648.2, z: 0}
+  testSphere: {fileID: 0}
+  sphereRadiusMm: 3.5
+  lastCollision:
+    hasContact: 0
+    dominantTissue: 0
+    centerTissue: 0
+    solidVoxelCount: 0
+    penetrationDepth: 0
+    contactPoint: {x: 0, y: 0, z: 0}
+    contactNormal: {x: 0, y: 0, z: 0}
+  showBoundingBox: 1
+  showVoxels: 0
+  renderDownsampleStride: 3
+  renderAsCubes: 0
+  showBones: 1
+  showDuralSac: 0
+  showLigaments: 0
+  showMuscles: 0
+  showSkinAndFat: 0
 --- !u!1 &3386767876979657614
 GameObject:
   m_ObjectHideFlags: 0

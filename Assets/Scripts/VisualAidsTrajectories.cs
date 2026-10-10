@@ -4,7 +4,9 @@ using UnityEngine;
 public class VisualAidsTrajectories : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private LumbarPunctureMonteCarlo monteCarloScript;
+    [SerializeField] private VoxelMonteCarlo monteCarloScript;
+    //   [SerializeField] private LumbarPunctureMonteCarlo monteCarloScript; // Original line, commented out for clarity
+
     [SerializeField] private TMP_Dropdown dropdown; // Change to 'Dropdown' if using legacy UI
 
     private void Awake()
@@ -47,8 +49,9 @@ public class VisualAidsTrajectories : MonoBehaviour
             return;
         }
 
-        // Cast index directly to the enum (0, 1, or 2)
-        LumbarPunctureMonteCarlo.RenderMode selectedMode = (LumbarPunctureMonteCarlo.RenderMode)index;
+        // Cast index directly to the enum (0, 1, 2, or 3)
+        //LumbarPunctureMonteCarlo.RenderMode selectedMode = (LumbarPunctureMonteCarlo.RenderMode)index;
+        VoxelMonteCarlo.RenderMode selectedMode = (VoxelMonteCarlo.RenderMode)index;
         monteCarloScript.SetRenderMode(selectedMode);
     }
 }
