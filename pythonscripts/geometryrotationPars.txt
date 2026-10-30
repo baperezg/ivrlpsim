@@ -1,0 +1,1 @@
+python geometryrotation.py lumbar_supine.glb -o lumbar_adjusted.glb --z-l3 8.0 --z-l2 8.0 --z-l1 10.0 --z-t12 10.0 --z-t11 10
