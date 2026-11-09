@@ -26,7 +26,7 @@ public class VoxelDirectForce : MonoBehaviour
     public VoxelMonteCarlo voxelMonteCarlo;
 
     [Header("Tracking Transforms")]
-    [Tooltip("The 2D circle / entry aperture transform (its forward vector defines entry normal).")]
+    [Tooltip("The 2D circle / entry aperture transform on the skin surface.")]
     public Transform entryCircleTransform;
 
     [Tooltip("The needle tip / stylus proxy tracked by the haptic device.")]
@@ -34,6 +34,13 @@ public class VoxelDirectForce : MonoBehaviour
 
     [Tooltip("Visual representation of the needle mesh.")]
     public Transform needleMesh;
+
+    [Header("Axis Orientation Settings")]
+    [Tooltip("If true, automatically points the puncture axis from entryCircleTransform towards voxelMonteCarlo.duraCircle.")]
+    public bool alignAxisWithDuraTarget = true;
+
+    [Tooltip("Flips the forward axis 180 degrees if entryCircleTransform.forward faces outward away from the spine.")]
+    public bool invertForwardAxis = false;
 
     [Header("Puncture Activation Tolerances")]
     [Tooltip("Maximum entry approach distance in mm along normal to start puncture.")]
@@ -320,6 +327,20 @@ public class VoxelDirectForce : MonoBehaviour
     }
     #endregion
 
+    public Vector3 GetPunctureAxis()
+    {
+        if (alignAxisWithDuraTarget && voxelMonteCarlo != null && voxelMonteCarlo.duraCircle != null && entryCircleTransform != null)
+        {
+            return (voxelMonteCarlo.duraCircle.position - entryCircleTransform.position).normalized;
+        }
+
+        if (entryCircleTransform == null) return Vector3.forward;
+
+        Vector3 axis = entryCircleTransform.forward;
+        if (invertForwardAxis) axis = -axis;
+        return axis.normalized;
+    }
+
     private void FixedUpdate()
     {
         if (entryCircleTransform == null || needleTip == null || hapticPlugin == null)
@@ -329,7 +350,7 @@ public class VoxelDirectForce : MonoBehaviour
         }
 
         Vector3 displacement = needleTip.position - entryCircleTransform.position;
-        Vector3 punctureAxis = entryCircleTransform.forward.normalized;
+        Vector3 punctureAxis = GetPunctureAxis();
 
         float depthMeters = Vector3.Dot(displacement, punctureAxis);
         depthMillimeters = depthMeters * 1000.0f;
@@ -341,10 +362,10 @@ public class VoxelDirectForce : MonoBehaviour
         // Puncture initiation
         if (!isPenetrating)
         {
-            bool withinApproachDistance = depthMillimeters > 0.0f && depthMillimeters <= surfaceEntryProximityMm;
+            bool withinApproachDistance = depthMillimeters >= -surfaceEntryProximityMm && depthMillimeters <= (surfaceEntryProximityMm * 2.0f);
             bool withinApertureRadius = lateralOffsetMm <= maxEntryApertureRadiusMm;
 
-            if (withinApproachDistance && withinApertureRadius)
+            if (withinApproachDistance && withinApertureRadius && depthMillimeters > 0.0f)
             {
                 isPenetrating = true;
                 entryOrientation = (needleMesh != null) ? needleMesh.rotation : entryCircleTransform.rotation;
@@ -409,7 +430,7 @@ public class VoxelDirectForce : MonoBehaviour
     }
 
     /// <summary>
-    /// Ray-marches through the voxel volume from the skin surface in the normal direction to establish layer depths.
+    /// Ray-marches through the voxel volume from the skin surface in the puncture direction to establish layer depths.
     /// </summary>
     private void ExtractVoxelLayerDistances(Vector3 originWorld, Vector3 directionNorm)
     {
@@ -493,10 +514,7 @@ public class VoxelDirectForce : MonoBehaviour
         if (esLen < 0.5f) esLen = 8.60f;
         if (duraLen < 0.5f) duraLen = 3.02f;
 
-        // Original script proportional ratios:
-        // MS: (19.37 - 17.15) / (20.0 - 17.15) = 2.22 / 2.85 = 0.7789
-        // IL: (23.18 - 20.0) / (41.18 - 20.0) = 3.18 / 21.18 = 0.1501
-        // LF: (44.79 - 41.18) / (48.38 - 41.18) = 3.61 / 7.20 = 0.5014
+        // Proportional split constants
         const float ratioMS = 0.7789f;
         const float ratioIL = 0.1501f;
         const float ratioLF = 0.5014f;
@@ -555,13 +573,7 @@ public class VoxelDirectForce : MonoBehaviour
             angleWithBestTrajectoryDeg = 0.0f;
         }
 
-        // In native project space:
-        // +X: Left / Right
-        // +Y: Head (Superior) / Feet (Inferior)
-        // +Z: Abdomen (Anterior) / Back (Posterior)
-
         // 2. Angle with Axial / Horizontal Plane (XZ plane, normal is +Y)
-        // Angle between vector and plane = 90 - Angle(vector, planeNormal)
         float angleToY = Vector3.Angle(recordedDirection, Vector3.up);
         angleWithAxialPlaneDeg = Mathf.Abs(90.0f - angleToY);
 
@@ -592,16 +604,18 @@ public class VoxelDirectForce : MonoBehaviour
     {
         if (entryCircleTransform != null)
         {
+            Vector3 axis = GetPunctureAxis();
+
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(entryCircleTransform.position, maxEntryApertureRadiusMm * 0.001f);
 
             Gizmos.color = Color.blue;
-            Gizmos.DrawRay(entryCircleTransform.position, entryCircleTransform.forward * (thickDura * 0.001f));
+            Gizmos.DrawRay(entryCircleTransform.position, axis * (thickDura * 0.001f));
 
             if (trajectoryTerminatedByObstruction)
             {
                 Gizmos.color = Color.red;
-                Gizmos.DrawWireSphere(entryCircleTransform.position + entryCircleTransform.forward * (obstructionDepthMm * 0.001f), 0.003f);
+                Gizmos.DrawWireSphere(entryCircleTransform.position + axis * (obstructionDepthMm * 0.001f), 0.003f);
             }
         }
     }

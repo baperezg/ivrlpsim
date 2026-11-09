@@ -1,0 +1,14 @@
+# Slicer Color Table File
+# ID Name R G B A
+0 Air 0 0 0 0
+1 SoftTissue 200 160 150 255
+2 Fat 242 217 102 255
+3 Skin 242 191 166 255
+4 Muscle 191 51 51 255
+5 DuralSac 255 224 115 255
+6 EpiduralSpace 115 191 255 255
+7 OtherLigaments 204 204 178 255
+8 SupraspinousLigament 217 178 115 255
+9 LigamentumFlavum 250 209 26 255
+10 IntervertebralDisc 115 166 230 255
+11 Bone 240 232 214 255
