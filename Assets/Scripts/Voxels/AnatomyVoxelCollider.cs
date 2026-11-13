@@ -42,7 +42,7 @@ public class AnatomyVoxelCollider : MonoBehaviour
     // -----------------------------------------------------------------------
     private class VoxelVolume
     {
-        public const uint Magic = 0x314A544D; // "MTJ1"[cite: 5, 13]
+        public const uint Magic = 0x314A544D; // "MTJ1"
         public int nx, ny, nz;
         public Vector3 originMm;
         public float pitchMm;
@@ -89,9 +89,10 @@ public class AnatomyVoxelCollider : MonoBehaviour
 
         public TissueType SampleMm(Vector3 localMm)
         {
-            int i = Mathf.RoundToInt((localMm.x - originMm.x) * invPitch);
-            int j = Mathf.RoundToInt((localMm.y - originMm.y) * invPitch);
-            int k = Mathf.RoundToInt((localMm.z - originMm.z) * invPitch);
+            // FloorToInt matches np.floor((pos - origin) / spacing) so voxel (0,0,0) spans [origin, origin + pitch]
+            int i = Mathf.FloorToInt((localMm.x - originMm.x) * invPitch);
+            int j = Mathf.FloorToInt((localMm.y - originMm.y) * invPitch);
+            int k = Mathf.FloorToInt((localMm.z - originMm.z) * invPitch);
 
             if ((uint)i >= (uint)nx || (uint)j >= (uint)ny || (uint)k >= (uint)nz)
                 return TissueType.Air;
@@ -112,10 +113,10 @@ public class AnatomyVoxelCollider : MonoBehaviour
     public Vector3 axisMultiplier = new Vector3(1f, 1f, 1f);
 
     [Tooltip("Fine-tune position offset (in millimeters) relative to this transform's pivot.")]
-    public Vector3 manualOffsetMm = new Vector3(0f, -648.200012f, 0f);
+    public Vector3 manualOffsetMm = Vector3.zero;
 
     [Tooltip("Manual rotation offset in degrees (e.g. Set Y to 180 to flip Anterior <-> Posterior).")]
-    public Vector3 manualRotationOffsetEuler = new Vector3(0f, 180f, 0f);
+    public Vector3 manualRotationOffsetEuler = Vector3.zero;
 
     [Header("Collision Target (Sphere)")]
     [Tooltip("Target sphere transform to test in real-time. If null, you can query via code.")]
@@ -229,7 +230,7 @@ public class AnatomyVoxelCollider : MonoBehaviour
 
         float pitch = volume.pitchMm;
         int step = Mathf.CeilToInt(radiusInMm / pitch);
-        float sqrRadius = radiusInMm * radiusMmToLocalScaleRatio();
+        float sqrRadius = radiusInMm * radiusInMm;
 
         int[] tissueHistogram = new int[12];
         Vector3 avgNormal = Vector3.zero;
@@ -295,13 +296,6 @@ public class AnatomyVoxelCollider : MonoBehaviour
         return res;
     }
 
-    private float radiusMmToLocalScaleRatio()
-    {
-        Vector3 lossy = transform.lossyScale;
-        float avgScale = (Mathf.Abs(lossy.x) + Mathf.Abs(lossy.y) + Mathf.Abs(lossy.z)) / 3.0f;
-        return avgScale > 0.0001f ? (1.0f / avgScale) : 1.0f;
-    }
-
     private bool IsTissueVisible(TissueType t)
     {
         switch (t)
@@ -360,7 +354,8 @@ public class AnatomyVoxelCollider : MonoBehaviour
                         if (!IsTissueVisible(t)) continue;
 
                         Gizmos.color = TissuePalette[tag];
-                        Vector3 posMm = volume.originMm + new Vector3(x, y, z) * volume.pitchMm;
+                        // Center each voxel within its [origin + idx * pitch, origin + (idx + 1) * pitch] cell
+                        Vector3 posMm = volume.originMm + (new Vector3(x, y, z) + Vector3.one * 0.5f) * volume.pitchMm;
 
                         if (renderAsCubes)
                             Gizmos.DrawCube(posMm, Vector3.one * (volume.pitchMm * stride));

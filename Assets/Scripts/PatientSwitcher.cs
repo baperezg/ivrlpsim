@@ -5,6 +5,7 @@ public class PatientSwitcher : MonoBehaviour
     [SerializeField] private GameObject objectA;
     [SerializeField] private GameObject objectB;
     [SerializeField] private GameObject lpAnatomy;
+    [SerializeField] private GameObject lpAids;
 
     public Vector3 lpSitPos;
     public Vector3 lpSitRot;
